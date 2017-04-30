@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Print n\' Go</string>
+    <string name="title_activity_maps">Karta</string>
+    <string name="action_settings">Odabir iz liste</string>
 </resources>
