@@ -55,7 +55,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         getMenuInflater().inflate(R.menu.menu_activity_maps, menu);
         return true;
     }
-
+//test
     /**
      * Manipulates the map once available.
      * This callback is triggered when the map is ready to be used.
