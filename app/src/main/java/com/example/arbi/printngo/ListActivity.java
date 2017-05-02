@@ -16,9 +16,6 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-
-
-
 public class ListActivity extends AppCompatActivity {
 
     final int ACTIVITY_CHOOSE_FILE = 1;
@@ -27,7 +24,7 @@ public class ListActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list);
-
+/*When the button (. . . ) is pressed user can select file he wants to send for printing  */
         Button openFile = (Button) findViewById(R.id.buttonSendFile);
         openFile.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -39,21 +36,12 @@ public class ListActivity extends AppCompatActivity {
                 chooseFile.setType("*/*");
                 intent = Intent.createChooser(chooseFile, "Choose a file");
                 startActivityForResult(intent, ACTIVITY_CHOOSE_FILE);
-
-               /* try {
-                    startActivityForResult(Intent.createChooser(loadIntent, "Select your phrases .txt document"), 0);
-
-                } catch (android.content.ActivityNotFoundException e) {
-
-                    //if the user doesen't have file explorer installed
-                    Toast.makeText(ListActivity.this, "Please install a file manager!", Toast.LENGTH_SHORT).show();
-
-                }*/
             }
         });
     }
+    /*The selected file is than written in string (its path, not whole file) */
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        EditText editTextFile = (EditText) findViewById(R.id.editTextFile);
+        EditText editTextFile = (EditText) findViewById(R.id.editTextFilePath);
         switch(requestCode) {
             case ACTIVITY_CHOOSE_FILE: {
                 if (resultCode == RESULT_OK){

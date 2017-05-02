@@ -17,13 +17,14 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
     }
 
-    /** Called when the user taps the Map button */
+    /** Called when the user taps the Map button open Google maps to search for print shops in area*/
     public void openMap(View view) {
         Intent intent = new Intent(this, MapsActivity.class);
         startActivity(intent);
     }
 
-    /** Called when the user taps the List button */
+    /** Called when the user taps the "Isprintaj" button. It lists all the copy shops, lets the user to
+     * select file and other features. It shows all information about printing */
     public void openList(View view) {
         Intent intent = new Intent(this, ListActivity.class);
         startActivity(intent);
