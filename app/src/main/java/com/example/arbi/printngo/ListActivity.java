@@ -1,32 +1,46 @@
 package com.example.arbi.printngo;
 
+import java.io.File;
+
+import android.app.Activity;
 import android.content.Intent;
+import android.database.Cursor;
+import android.net.Uri;
+import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
+
+
+
 
 public class ListActivity extends AppCompatActivity {
 
-    private Intent loadIntent;
+    final int ACTIVITY_CHOOSE_FILE = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list);
 
-        Button openFile = (Button)findViewById(R.id.buttonSendFile);
+        Button openFile = (Button) findViewById(R.id.buttonSendFile);
         openFile.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 
-                loadIntent = new Intent(Intent.ACTION_GET_CONTENT);
-                loadIntent.setType("*/*");
-                loadIntent.addCategory(Intent.CATEGORY_OPENABLE);
+                Intent chooseFile;
+                Intent intent;
+                chooseFile = new Intent(Intent.ACTION_GET_CONTENT);
+                chooseFile.setType("*/*");
+                intent = Intent.createChooser(chooseFile, "Choose a file");
+                startActivityForResult(intent, ACTIVITY_CHOOSE_FILE);
 
-                try {
-
+               /* try {
                     startActivityForResult(Intent.createChooser(loadIntent, "Select your phrases .txt document"), 0);
 
                 } catch (android.content.ActivityNotFoundException e) {
@@ -34,8 +48,20 @@ public class ListActivity extends AppCompatActivity {
                     //if the user doesen't have file explorer installed
                     Toast.makeText(ListActivity.this, "Please install a file manager!", Toast.LENGTH_SHORT).show();
 
-                }
+                }*/
             }
         });
+    }
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        EditText editTextFile = (EditText) findViewById(R.id.editTextFile);
+        switch(requestCode) {
+            case ACTIVITY_CHOOSE_FILE: {
+                if (resultCode == RESULT_OK){
+                    Uri uri = data.getData();
+                    String filePath = uri.getPath();
+                    editTextFile.setText(filePath, TextView.BufferType.EDITABLE);
+                }
+            }
+        }
     }
 }
