@@ -68,7 +68,6 @@ public class ListActivity extends AppCompatActivity {
                             displayName = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
                         }
 
-
                     } finally {
                         cursor.close();
                     }

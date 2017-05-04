@@ -2,4 +2,8 @@
     <string name="app_name">Print n\' Go</string>
     <string name="title_activity_maps">Karta</string>
     <string name="action_settings">Odabir iz liste</string>
+    <string name="loading">Učitavanje</string>
+    <string name="signed_in_fmt">Ulogirani ste</string>
+    <string name="signed_out">Odlogirani ste.</string>
+
 </resources>
