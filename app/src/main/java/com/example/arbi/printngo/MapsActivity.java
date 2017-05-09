@@ -52,7 +52,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     //Menu
     public boolean onCreateOptionsMenu(Menu menu){
-        getMenuInflater().inflate(R.menu.menu_activity_maps, menu);
+        getMenuInflater().inflate(R.menu.maps_activity_menu, menu);
         return true;
     }
 //test

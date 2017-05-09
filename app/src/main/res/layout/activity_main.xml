@@ -17,11 +17,11 @@
         android:weightSum="1">
 
         <LinearLayout
-            android:layout_height="match_parent"
             android:layout_width="0dp"
+            android:layout_height="match_parent"
             android:layout_weight="0.5"
-            android:orientation="vertical"
             android:gravity="center"
+            android:orientation="vertical"
             android:weightSum="1">
 
             <Button
@@ -62,11 +62,11 @@
 
 
         <LinearLayout
-            android:layout_height="match_parent"
             android:layout_width="0dp"
+            android:layout_height="match_parent"
             android:layout_weight="0.5"
-            android:orientation="vertical"
             android:gravity="center"
+            android:orientation="vertical"
             android:weightSum="1">
 
             <Button
@@ -78,11 +78,11 @@
         </LinearLayout>
 
         <LinearLayout
-            android:layout_height="match_parent"
             android:layout_width="0dp"
+            android:layout_height="match_parent"
             android:layout_weight="0.5"
-            android:orientation="vertical"
             android:gravity="center"
+            android:orientation="vertical"
             android:weightSum="1">
 
             <Button

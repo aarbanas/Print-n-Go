@@ -13,6 +13,7 @@ import java.nio.channels.FileChannel;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -22,10 +23,12 @@ import android.net.Uri;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -33,12 +36,19 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.auth.api.Auth;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
 import com.shockwave.pdfium.PdfiumCore;
 
 
 
-public class PrintActivity extends AppCompatActivity {
 
+public class PrintActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener {
+
+
+    private GoogleApiClient mGoogleApiClient;
     final int ACTIVITY_CHOOSE_FILE = 1;
     private static final String TAG = "PrintActivity";
     public final static String FOLDER = Environment.getExternalStorageDirectory() + "/PDF";
@@ -47,6 +57,17 @@ public class PrintActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list);
+
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestEmail()
+                .build();
+
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .enableAutoManage(this /* FragmentActivity */, this /* OnConnectionFailedListener */)
+                .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
+                .build();
+        getInfo();
+
 /*When the button (. . . ) is pressed user can select file he wants to send for printing. It is allowed only to pick
  * .pdf, .csv, .txt, .xml, .docx files */
         Button openFile = (Button) findViewById(R.id.buttonSendFile);
@@ -95,10 +116,16 @@ public class PrintActivity extends AppCompatActivity {
                 } else if (filePath.startsWith("file://")) {
                     displayName = myFile.getName();
                 }
+
                         editTextFile.setText(displayName, TextView.BufferType.EDITABLE);
                         Log.i(TAG, uri.getPath());
                     //Generating image and counting page numbers of PDF file
                         generateImageFromPdf(uri);
+
+
+                    editTextFile.setText(displayName, TextView.BufferType.EDITABLE);
+                    Log.i(TAG, uri.getPath());
+
 
                 }
             }
@@ -119,14 +146,16 @@ public class PrintActivity extends AppCompatActivity {
             ParcelFileDescriptor fd = getContentResolver().openFileDescriptor(pdfUri, "r");
             com.shockwave.pdfium.PdfDocument pdfDocument = pdfiumCore.newDocument(fd);
             pdfiumCore.openPage(pdfDocument, pageNumber);
+
             int width = pdfiumCore.getPageWidthPoint(pdfDocument, pageNumber);
             int height = pdfiumCore.getPageHeightPoint(pdfDocument, pageNumber);
+
             Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
             pdfiumCore.renderPageBitmap(pdfDocument, bmp, pageNumber, 0, 0, width, height);
             saveImage(bmp);
             showPdf.setImageBitmap(bmp);
             int pageCount = pdfiumCore.getPageCount(pdfDocument);
-            textViewShowData.setText("Broj stranica: " + Integer.toString(pageCount));
+            textViewShowData.setText("\n\tBroj stranica: " + Integer.toString(pageCount));
             pdfiumCore.closeDocument(pdfDocument); // important!
         } catch(Exception e) {
             //todo with exception
@@ -155,12 +184,50 @@ public class PrintActivity extends AppCompatActivity {
     }
 
 
+
     /*Icon send file to copy shop is set in the menu */
+
+    private void getInfo(){
+
+        SharedPreferences pref_print=this.getSharedPreferences("Login",0);
+
+        TextView info = (TextView)findViewById(R.id.textViewShowData);
+
+        info.setText("\n\tEMAIL= "+pref_print.getString("email", null)+"\n\tPASS= "+pref_print.getString("password", null)+
+                "\n\tID= "+pref_print.getString("id", null)+"\n\tIME: "+pref_print.getString("ime", null)+"\n\tPREZIME= "+
+                pref_print.getString("prezime", null)+"\n\tTEL= "+pref_print.getString("tel", null));
+
+    }
+
+/*Icon send file to copy shop is set in the menu */
     public boolean onCreateOptionsMenu (Menu menu) {
         getMenuInflater().inflate(R.menu.print_activity_menu, menu);
 
         return true;
     }
 
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.print_logout:
+
+                Auth.GoogleSignInApi.signOut(mGoogleApiClient);
+                mGoogleApiClient.disconnect();
+
+                Intent intent = new Intent(this, LoginActivity.class);
+                //intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                startActivity(intent);
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+
+    }
 
 }
