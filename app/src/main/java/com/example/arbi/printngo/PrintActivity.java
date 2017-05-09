@@ -66,7 +66,7 @@ public class PrintActivity extends AppCompatActivity {
             }
         });
     }
-    /*The selected file's name is written in string. First page of selected PDF file is shown on image view */
+    /*The selected file's name is written in string. First page of selected PDF file is shown on image view, and pages of PDF file are counted */
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
         EditText editTextFile = (EditText) findViewById(R.id.editTextFilePath);
@@ -152,13 +152,6 @@ public class PrintActivity extends AppCompatActivity {
                 //todo with exception
             }
         }
-    }
-
-    public int countPages (Uri uriCountPdf){
-        int count = 0;
-
-
-        return count;
     }
 
 
