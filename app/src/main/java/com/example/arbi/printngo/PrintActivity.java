@@ -1,17 +1,29 @@
 package com.example.arbi.printngo;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
+import android.animation.LayoutTransition;
+import android.animation.ObjectAnimator;
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -20,6 +32,7 @@ import android.graphics.Color;
 import android.graphics.pdf.PdfRenderer;
 import android.media.Image;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
@@ -30,9 +43,12 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -42,10 +58,14 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.shockwave.pdfium.PdfiumCore;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import static com.example.arbi.printngo.R.id.map;
 
 
-
-public class PrintActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener {
+public class PrintActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener, View.OnClickListener {
 
 
     private GoogleApiClient mGoogleApiClient;
@@ -53,10 +73,29 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
     private static final String TAG = "PrintActivity";
     public final static String FOLDER = Environment.getExternalStorageDirectory() + "/PDF";
 
+    private String[] labels_postavke = {"label_postavke","label_interval_ispisa","label_postavke_uveza"};
+    private String[] layout_postavke = {"layout_postavke","layout_interval_ispisa","layout_postavke_uveza"};
+    public List<String> spinner_array = new ArrayList<String>();
+    private int cursor_postavke=0;
+    ProgressDialog pd;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list);
+
+        if(cursor_postavke==0){
+            Button previous_button = (Button) findViewById(R.id.previous_postavke);
+            previous_button.setVisibility(View.GONE);
+        }
+
+        //Set click listeners on buttons "Dalje" and "Natrag"
+        findViewById(R.id.previous_postavke).setOnClickListener(this);
+        findViewById(R.id.next_postavke).setOnClickListener(this);
+
+        //Execute async task for fetching list of copy shops
+        new JsonTask().execute("http://207.154.235.97/login/lista_kopirnica.php");
+
 
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestEmail()
@@ -66,7 +105,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                 .enableAutoManage(this /* FragmentActivity */, this /* OnConnectionFailedListener */)
                 .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
                 .build();
-        getInfo();
+        //getInfo();
 
 /*When the button (. . . ) is pressed user can select file he wants to send for printing. It is allowed only to pick
  * .pdf, .csv, .txt, .xml, .docx files */
@@ -84,6 +123,8 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
 
                 intent = Intent.createChooser(chooseFile, "Choose a file");
                 startActivityForResult(intent, ACTIVITY_CHOOSE_FILE);
+
+
             }
         });
     }
@@ -162,6 +203,117 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         }
     }
 
+    private class JsonTask extends AsyncTask<String, String, String> {
+
+        //On pre execute show progress dialog with message "Učitavanje"
+        protected void onPreExecute() {
+            super.onPreExecute();
+
+            pd = new ProgressDialog(PrintActivity.this);
+            pd.setMessage("Učitavanje...");
+            pd.setCancelable(false);
+            pd.show();
+        }
+        //Make connection to server and fetch server response in background
+        protected String doInBackground(String... params) {
+
+
+            HttpURLConnection connection = null;
+            BufferedReader reader = null;
+
+            try {
+                URL url = new URL(params[0]);
+                connection = (HttpURLConnection) url.openConnection();
+                connection.connect();
+
+
+                InputStream stream = connection.getInputStream();
+
+                reader = new BufferedReader(new InputStreamReader(stream));
+
+                StringBuffer buffer = new StringBuffer();
+                String line = "";
+
+                while ((line = reader.readLine()) != null) {
+                    buffer.append(line+"\n");
+
+                }
+
+                return buffer.toString();
+
+
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
+                try {
+                    if (reader != null) {
+                        reader.close();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            return null;
+        }
+
+        @Override
+        //On post execute decode JSON array and put all entries into List of strings
+        protected void onPostExecute(String result) {
+            super.onPostExecute(result);
+            if (pd.isShowing()){
+                pd.dismiss();
+            }
+
+            if (result != null) {
+
+                // ...
+                JSONArray json = null;
+                try {
+                    json = new JSONArray(result);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+
+                for(int i=0;i<json.length();i++){
+                    JSONObject e = null;
+                    try {
+                        e = json.getJSONObject(i);
+                    } catch (JSONException e1) {
+                        e1.printStackTrace();
+                    }
+
+                    try {
+
+                        spinner_array.add(e.getString("naziv")+" "+ e.getString("adresa"));
+
+
+                    } catch (JSONException e1) {
+                        e1.printStackTrace();
+                    }
+
+
+                }
+
+                //Put contents of List<Strings> inside a spinner through ArrayAdapter
+                Spinner spinner = (Spinner) findViewById(R.id.spinnerPrintList);
+
+                ArrayAdapter<String> spinnerArrayAdapter = new ArrayAdapter<String>(PrintActivity.this,   android.R.layout.simple_spinner_item, spinner_array);
+                spinnerArrayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                spinner.setAdapter(spinnerArrayAdapter);
+
+
+                }
+
+
+        }
+    }
+
     private void saveImage(Bitmap bmp) {
         FileOutputStream out = null;
         try {
@@ -199,6 +351,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
 
     }
 
+
 /*Icon send file to copy shop is set in the menu */
     public boolean onCreateOptionsMenu (Menu menu) {
         getMenuInflater().inflate(R.menu.print_activity_menu, menu);
@@ -230,4 +383,99 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
 
     }
 
+    public void viewMap(View view) {
+
+        Intent intent = new Intent(this,MapsActivity.class);
+        startActivity(intent);
+    }
+
+    public void onClick(View v) {
+
+
+        switch (v.getId()) {
+            case R.id.previous_postavke:
+
+                LinearLayout layout_animation = (LinearLayout)findViewById(R.id.master_layout);
+
+//enable animation
+                layout_animation.setLayoutTransition(null);
+
+//disable animation
+
+
+
+                int resID = getResources().getIdentifier(labels_postavke[cursor_postavke], "id", getPackageName());
+                TextView label = (TextView)findViewById(resID);
+                label.setVisibility(View.GONE);
+
+                resID = getResources().getIdentifier(layout_postavke[cursor_postavke], "id", getPackageName());
+                LinearLayout layout = (LinearLayout) findViewById(resID);
+                layout.setVisibility(View.GONE);
+
+                cursor_postavke=cursor_postavke-1;
+
+                LayoutTransition layoutTransition = new LayoutTransition();
+                layout_animation.setLayoutTransition(layoutTransition);
+
+                resID = getResources().getIdentifier(labels_postavke[cursor_postavke], "id", getPackageName());
+                label = (TextView)findViewById(resID);
+                label.setVisibility(View.VISIBLE);
+
+                resID = getResources().getIdentifier(layout_postavke[cursor_postavke], "id", getPackageName());
+                layout = (LinearLayout) findViewById(resID);
+                layout.setVisibility(View.VISIBLE);
+
+                Button button_next = (Button)findViewById(R.id.next_postavke);
+                Button button_previous = (Button)findViewById(R.id.previous_postavke);
+
+                if(cursor_postavke==0){
+                    button_previous.setVisibility(View.GONE);
+                }else if(cursor_postavke==1 && button_next.getVisibility()==View.GONE){
+                    button_next.setVisibility(View.VISIBLE);
+                }
+
+
+                break;
+            case R.id.next_postavke:
+
+                layout_animation = (LinearLayout)findViewById(R.id.master_layout);
+                layout_animation.setLayoutTransition(null);
+
+                resID = getResources().getIdentifier(labels_postavke[cursor_postavke], "id", getPackageName());
+                label = (TextView)findViewById(resID);
+                label.setVisibility(View.GONE);
+
+                resID = getResources().getIdentifier(layout_postavke[cursor_postavke], "id", getPackageName());
+                layout = (LinearLayout) findViewById(resID);
+                layout.setVisibility(View.GONE);
+
+                cursor_postavke=cursor_postavke+1;
+
+                layoutTransition = new LayoutTransition();
+                layout_animation.setLayoutTransition(layoutTransition);
+
+                resID = getResources().getIdentifier(labels_postavke[cursor_postavke], "id", getPackageName());
+                label = (TextView)findViewById(resID);
+                label.setVisibility(View.VISIBLE);
+
+                resID = getResources().getIdentifier(layout_postavke[cursor_postavke], "id", getPackageName());
+                layout = (LinearLayout) findViewById(resID);
+                layout.setVisibility(View.VISIBLE);
+                 button_next = (Button)findViewById(R.id.next_postavke);
+                 button_previous = (Button)findViewById(R.id.previous_postavke);
+
+                if(cursor_postavke==2){
+                    button_next.setVisibility(View.GONE);
+                } else if(cursor_postavke==1 && button_next.getVisibility()==View.GONE){
+                    button_next.setVisibility(View.VISIBLE);
+                } else if(cursor_postavke==1 && button_previous.getVisibility()==View.GONE){
+                    button_previous.setVisibility(View.VISIBLE);
+                }
+
+
+
+
+                break;
+        }
+    }
 }
