@@ -281,7 +281,7 @@ public class RegisterActivity extends AppCompatActivity {
                 // Append parameters to URL
                 Uri.Builder builder = null;
                 if (stanje_reg.equals("spremi")){
-                     builder = new Uri.Builder()
+                    builder = new Uri.Builder()
                             .appendQueryParameter("email", params[0])
                             .appendQueryParameter("password", params[1])
                             .appendQueryParameter("ime", params[2])
@@ -374,7 +374,7 @@ public class RegisterActivity extends AppCompatActivity {
                     stanje_greske="email je već zauzet.";
 
 
-                //Inform user registration has been successful
+                    //Inform user registration has been successful
                 }else {
 
                     TextView error_registracija = (TextView)findViewById(R.id.error_registracija);

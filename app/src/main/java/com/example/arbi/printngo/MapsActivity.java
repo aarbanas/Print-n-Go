@@ -1,12 +1,17 @@
 package com.example.arbi.printngo;
 
 import android.Manifest;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.location.LocationManager;
 import android.os.Build;
 import android.support.v4.app.ActivityCompat;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.widget.Toast;
@@ -96,6 +101,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onConnected(Bundle bundle) {
+        // Make sure that GPS is enabled on the device
+        LocationManager mlocManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+        boolean enabled = mlocManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+
+        if(!enabled) {
+            showDialogGPS();
+        }
 
         mLocationRequest = new LocationRequest();
         mLocationRequest.setInterval(1000);
@@ -210,5 +222,29 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             // other 'case' lines to check for other permissions this app might request.
             // You can add here other case statements according to your requirement.
         }
+    }
+
+    /**
+     * Show a dialog to the user requesting that GPS be enabled
+     */
+    private void showDialogGPS() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setCancelable(false);
+        builder.setTitle("Uključite Lokaciju");
+        builder.setMessage("Ova aplikacija koristi vašu lokaciju, želite li je uključiti? ");
+        builder.setInverseBackgroundForced(true);
+        builder.setPositiveButton("Uključi", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                startActivity(
+                        new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+            }
+        });
+        builder.setNegativeButton("Prekini", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+        AlertDialog alert = builder.create();
+        alert.show();
     }
 }

@@ -1,6 +1,7 @@
 package com.example.arbi.printngo;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -19,35 +20,47 @@ import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 
 import android.animation.LayoutTransition;
 import android.animation.ObjectAnimator;
 import android.app.Activity;
+import android.app.Dialog;
 import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.pdf.PdfRenderer;
 import android.media.Image;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
+import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.support.annotation.NonNull;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -62,7 +75,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import static com.example.arbi.printngo.R.id.map;
 
 
 public class PrintActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener, View.OnClickListener {
@@ -107,6 +119,14 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                 .build();
         //getInfo();
 
+        final ImageView imageThumbnail = (ImageView) findViewById(R.id.imageViewShowPDF);
+        imageThumbnail.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                showImage();
+            }
+        });
+
 /*When the button (. . . ) is pressed user can select file he wants to send for printing. It is allowed only to pick
  * .pdf, .csv, .txt, .xml, .docx files */
         Button openFile = (Button) findViewById(R.id.buttonSendFile);
@@ -143,25 +163,25 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                     //editTextFile.setText(filePath, TextView.BufferType.EDITABLE);
                     int count = 0;
                     if (filePath.startsWith("content://")) {
-                    Cursor cursor = null;
+                        Cursor cursor = null;
 
-                    try {
-                        cursor = this.getContentResolver().query(uri, null, null, null, null);
-                        if (cursor != null && cursor.moveToFirst()) {
-                            displayName = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+                        try {
+                            cursor = this.getContentResolver().query(uri, null, null, null, null);
+                            if (cursor != null && cursor.moveToFirst()) {
+                                displayName = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+                            }
+
+                        } finally {
+                            cursor.close();
                         }
-
-                    } finally {
-                        cursor.close();
+                    } else if (filePath.startsWith("file://")) {
+                        displayName = myFile.getName();
                     }
-                } else if (filePath.startsWith("file://")) {
-                    displayName = myFile.getName();
-                }
 
-                        editTextFile.setText(displayName, TextView.BufferType.EDITABLE);
-                        Log.i(TAG, uri.getPath());
+                    editTextFile.setText(displayName, TextView.BufferType.EDITABLE);
+                    Log.i(TAG, uri.getPath());
                     //Generating image and counting page numbers of PDF file
-                        generateImageFromPdf(uri);
+                    generateImageFromPdf(uri);
 
 
                     editTextFile.setText(displayName, TextView.BufferType.EDITABLE);
@@ -182,6 +202,8 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         TextView textViewShowData = (TextView) findViewById(R.id.textViewShowData);
         int pageNumber = 0;
         PdfiumCore pdfiumCore = new PdfiumCore(this);
+        SharedPreferences settings = getSharedPreferences("image_URI", 0);
+        SharedPreferences.Editor editor = settings.edit();
         try {
             //http://www.programcreek.com/java-api-examples/index.php?api=android.os.ParcelFileDescriptor
             ParcelFileDescriptor fd = getContentResolver().openFileDescriptor(pdfUri, "r");
@@ -195,6 +217,9 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             pdfiumCore.renderPageBitmap(pdfDocument, bmp, pageNumber, 0, 0, width, height);
             saveImage(bmp);
             showPdf.setImageBitmap(bmp);
+            Uri uri = getImageUri(this, bmp);
+            editor.putString("imageURI", uri.toString());
+            editor.commit();
             int pageCount = pdfiumCore.getPageCount(pdfDocument);
             textViewShowData.setText("\n\tBroj stranica: " + Integer.toString(pageCount));
             pdfiumCore.closeDocument(pdfDocument); // important!
@@ -308,7 +333,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                 spinner.setAdapter(spinnerArrayAdapter);
 
 
-                }
+            }
 
 
         }
@@ -352,7 +377,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
     }
 
 
-/*Icon send file to copy shop is set in the menu */
+    /*Icon send file to copy shop is set in the menu */
     public boolean onCreateOptionsMenu (Menu menu) {
         getMenuInflater().inflate(R.menu.print_activity_menu, menu);
 
@@ -461,8 +486,8 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                 resID = getResources().getIdentifier(layout_postavke[cursor_postavke], "id", getPackageName());
                 layout = (LinearLayout) findViewById(resID);
                 layout.setVisibility(View.VISIBLE);
-                 button_next = (Button)findViewById(R.id.next_postavke);
-                 button_previous = (Button)findViewById(R.id.previous_postavke);
+                button_next = (Button)findViewById(R.id.next_postavke);
+                button_previous = (Button)findViewById(R.id.previous_postavke);
 
                 if(cursor_postavke==2){
                     button_next.setVisibility(View.GONE);
@@ -477,5 +502,35 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
 
                 break;
         }
+    }
+    public void showImage() {
+        Dialog builder = new Dialog(this);
+        builder.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        builder.getWindow().setBackgroundDrawable(
+                new ColorDrawable(android.graphics.Color.TRANSPARENT));
+        builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(DialogInterface dialogInterface) {
+                //nothing;
+            }
+        });
+
+        SharedPreferences settings = this.getSharedPreferences("image_URI", 0);
+        String imageUriString = settings.getString("imageURI", null);
+        Uri imageUri = Uri.parse(imageUriString);
+
+        ImageView imageView = new ImageView(this);
+        imageView.setImageURI(imageUri);
+        builder.addContentView(imageView, new RelativeLayout.LayoutParams(
+                1000,
+                1000));
+        builder.show();
+    }
+
+    public Uri getImageUri(Context inContext, Bitmap inImage) {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        inImage.compress(Bitmap.CompressFormat.JPEG, 100, bytes);
+        String path = MediaStore.Images.Media.insertImage(inContext.getContentResolver(), inImage, "Title", null);
+        return Uri.parse(path);
     }
 }
