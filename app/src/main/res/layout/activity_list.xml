@@ -70,7 +70,8 @@
             android:layout_weight="1"
             android:ems="10"
             android:hint="Broj kopija"
-            android:inputType="number" />
+            android:inputType="number"
+            android:imeOptions="actionDone"/>
 
         <CheckBox
             android:id="@+id/checkBoxInColor"
@@ -178,27 +179,28 @@
         android:visibility="gone">
 
         <RadioGroup
+            android:id="@id/radioGroupUvez"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="horizontal"
             android:gravity="center">
 
             <RadioButton
-                android:id="@+id/radioButton5"
+                android:id="@+id/radioButtonBezUveza"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Bez uveza" />
 
             <RadioButton
-                android:id="@+id/radioButton4"
+                android:id="@+id/radioButtonMekiUvez"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Meki uvez" />
 
             <RadioButton
-                android:id="@+id/radioButton3"
+                android:id="@+id/radioButtonTvrdiUvez"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"

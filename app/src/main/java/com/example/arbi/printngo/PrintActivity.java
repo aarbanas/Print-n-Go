@@ -44,22 +44,29 @@ import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
+import android.support.annotation.IdRes;
 import android.support.annotation.NonNull;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.RelativeLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -95,6 +102,15 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list);
+        final TextView aboutPrinting = (TextView) findViewById(R.id.textViewShowData);
+        final CheckBox obostrano = (CheckBox) findViewById(R.id.checkBoxBothSides);
+        final CheckBox uBoji = (CheckBox) findViewById(R.id.checkBoxInColor);
+        final ImageView imageThumbnail = (ImageView) findViewById(R.id.imageViewShowPDF);
+        final EditText brojKopija = (EditText) findViewById(R.id.editTextPaperCount);
+        final RadioGroup uvez = (RadioGroup) findViewById(R.id.radioGroupUvez);
+        final RadioButton bezUveza = (RadioButton) findViewById(R.id.radioButtonBezUveza);
+        final RadioButton mekiUvez = (RadioButton) findViewById(R.id.radioButtonMekiUvez);
+        final RadioButton tvrdiUvez = (RadioButton) findViewById(R.id.radioButtonTvrdiUvez);
 
         if(cursor_postavke==0){
             Button previous_button = (Button) findViewById(R.id.previous_postavke);
@@ -119,13 +135,77 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                 .build();
         //getInfo();
 
-        final ImageView imageThumbnail = (ImageView) findViewById(R.id.imageViewShowPDF);
         imageThumbnail.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 showImage();
             }
         });
+
+        uBoji.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String trenutniText = (String) aboutPrinting.getText();
+                if (uBoji.isChecked()) {
+                    aboutPrinting.setText(trenutniText + "\n\tU boji");
+                }
+                else {
+                    trenutniText = trenutniText.replaceAll("\\n\\tU boji", "");
+                    aboutPrinting.setText(trenutniText);
+                }
+            }
+        });
+
+        obostrano.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String trenutniText = (String) aboutPrinting.getText();
+                if (obostrano.isChecked()) {
+                    aboutPrinting.setText(trenutniText + "\n\tObostrano");
+                }
+                else {
+                    trenutniText = trenutniText.replaceAll("\\n\\tObostrano", "");
+                    aboutPrinting.setText(trenutniText);
+                }
+            }
+        });
+
+        brojKopija.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView textView, int i, KeyEvent keyEvent) {
+                if (i == EditorInfo.IME_ACTION_DONE){
+                    String trenutniText = (String) aboutPrinting.getText();
+                    aboutPrinting.setText(trenutniText + "\n\tBroj kopija: " + brojKopija.getText().toString());
+                    InputMethodManager imm = (InputMethodManager) textView.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+                    imm.hideSoftInputFromWindow(textView.getWindowToken(), 0);
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        uvez.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup radioGroup, @IdRes int i) {
+                String trenutniText = (String) aboutPrinting.getText();
+                if (bezUveza.isChecked()){
+                    trenutniText = trenutniText.replaceAll("\\n\\tMeki uveza", "");
+                    trenutniText = trenutniText.replaceAll("\\n\\tTvrdi uvez", "");
+                    aboutPrinting.setText(trenutniText + "\n\tBez uveza");
+                }
+                else if (mekiUvez.isChecked()){
+                    trenutniText = trenutniText.replaceAll("\\n\\tBez uveza", "");
+                    trenutniText = trenutniText.replaceAll("\\n\\tTvrdi uvez", "");
+                    aboutPrinting.setText(trenutniText + "\n\tMeki uvez");
+                }
+                else {
+                    trenutniText = trenutniText.replaceAll("\\n\\tBez uveza", "");
+                    trenutniText = trenutniText.replaceAll("\\n\\tMeki uvez", "");
+                    aboutPrinting.setText(trenutniText + "\n\tTvrdi uvez");
+                }
+            }
+        });
+
 
 /*When the button (. . . ) is pressed user can select file he wants to send for printing. It is allowed only to pick
  * .pdf, .csv, .txt, .xml, .docx files */
@@ -147,6 +227,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
 
             }
         });
+
     }
     /*The selected file's name is written in string. First page of selected PDF file is shown on image view, and pages of PDF file are counted */
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -182,12 +263,8 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                     Log.i(TAG, uri.getPath());
                     //Generating image and counting page numbers of PDF file
                     generateImageFromPdf(uri);
-
-
                     editTextFile.setText(displayName, TextView.BufferType.EDITABLE);
                     Log.i(TAG, uri.getPath());
-
-
                 }
             }
         }
@@ -221,7 +298,8 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             editor.putString("imageURI", uri.toString());
             editor.commit();
             int pageCount = pdfiumCore.getPageCount(pdfDocument);
-            textViewShowData.setText("\n\tBroj stranica: " + Integer.toString(pageCount));
+            String trenutniText = (String) textViewShowData.getText();
+            textViewShowData.setText(trenutniText + "\n\tBroj stranica: " + Integer.toString(pageCount));
             pdfiumCore.closeDocument(pdfDocument); // important!
         } catch(Exception e) {
             //todo with exception
@@ -522,8 +600,8 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         ImageView imageView = new ImageView(this);
         imageView.setImageURI(imageUri);
         builder.addContentView(imageView, new RelativeLayout.LayoutParams(
-                1000,
-                1000));
+                1200,
+                1200));
         builder.show();
     }
 
