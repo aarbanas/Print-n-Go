@@ -82,6 +82,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import static android.view.View.INVISIBLE;
 
 
 public class PrintActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener, View.OnClickListener {
@@ -103,14 +104,18 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list);
         final TextView aboutPrinting = (TextView) findViewById(R.id.textViewShowData);
+        final TextView minus = (TextView) findViewById(R.id.textViewMinus);
         final CheckBox obostrano = (CheckBox) findViewById(R.id.checkBoxBothSides);
         final CheckBox uBoji = (CheckBox) findViewById(R.id.checkBoxInColor);
         final ImageView imageThumbnail = (ImageView) findViewById(R.id.imageViewShowPDF);
         final EditText brojKopija = (EditText) findViewById(R.id.editTextPaperCount);
+        final EditText startPage = (EditText) findViewById(R.id.editTextStart);
+        final EditText endPage = (EditText) findViewById(R.id.editTextEnd);
         final RadioGroup uvez = (RadioGroup) findViewById(R.id.radioGroupUvez);
+        final RadioGroup ispis = (RadioGroup) findViewById(R.id.radioGroupIntervalIspisa);
         final RadioButton bezUveza = (RadioButton) findViewById(R.id.radioButtonBezUveza);
         final RadioButton mekiUvez = (RadioButton) findViewById(R.id.radioButtonMekiUvez);
-        final RadioButton tvrdiUvez = (RadioButton) findViewById(R.id.radioButtonTvrdiUvez);
+        final RadioButton cijelispis = (RadioButton) findViewById(R.id.radioButtonPrintAll);
 
         if(cursor_postavke==0){
             Button previous_button = (Button) findViewById(R.id.previous_postavke);
@@ -202,6 +207,23 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                     trenutniText = trenutniText.replaceAll("\\n\\tBez uveza", "");
                     trenutniText = trenutniText.replaceAll("\\n\\tMeki uvez", "");
                     aboutPrinting.setText(trenutniText + "\n\tTvrdi uvez");
+                }
+            }
+        });
+
+        ispis.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup radioGroup, @IdRes int i) {
+                String trenutniText = (String) aboutPrinting.getText();
+                if (cijelispis.isChecked()){
+                    minus.setVisibility(INVISIBLE);
+                    startPage.setVisibility(INVISIBLE);
+                    endPage.setVisibility(INVISIBLE);
+                }
+                else {
+                    minus.setVisibility(View.VISIBLE);
+                    startPage.setVisibility(View.VISIBLE);
+                    endPage.setVisibility(View.VISIBLE);
                 }
             }
         });

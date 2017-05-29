@@ -107,6 +107,7 @@
         android:weightSum="5">
 
         <RadioGroup
+            android:id="@+id/radioGroupIntervalIspisa"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
@@ -114,14 +115,14 @@
             android:orientation="horizontal">
 
             <RadioButton
-                android:id="@+id/radioButton"
+                android:id="@+id/radioButtonPrintPart"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Dio" />
 
             <RadioButton
-                android:id="@+id/radioButton2"
+                android:id="@+id/radioButtonPrintAll"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -129,7 +130,7 @@
         </RadioGroup>
 
         <EditText
-            android:id="@+id/editText"
+            android:id="@+id/editTextStart"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
@@ -139,7 +140,7 @@
             android:inputType="number" />
 
         <TextView
-            android:id="@+id/textView4"
+            android:id="@+id/textViewMinus"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
@@ -149,7 +150,7 @@
             android:textSize="20dp" />
 
         <EditText
-            android:id="@+id/editText2"
+            android:id="@+id/editTextEnd"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
