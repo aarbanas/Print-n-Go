@@ -108,6 +108,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
     AlertDialog sendDialog;
 
     String fileNamePath = "";
+    String brojStranica = "";
     String fileName = "";
     String vrstaUveza = "";
     long kopije = 0;
@@ -399,6 +400,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             int pageCount = pdfiumCore.getPageCount(pdfDocument);
             String trenutniText = (String) textViewShowData.getText();
             textViewShowData.setText(trenutniText + "\n\tBroj stranica: " + Integer.toString(pageCount));
+            brojStranica = Integer.toString(pageCount);
             pdfiumCore.closeDocument(pdfDocument); // important!
         } catch(Exception e) {
             //todo with exception
@@ -574,7 +576,10 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                 return true;
 
             case R.id.action_sendFile:
-                send_file();
+                if (fileName == ""){
+                    showToastFromDialog("Can't send without selecting file");
+                }
+                else send_file();
                 return true;
 
             default:
@@ -683,7 +688,6 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         }
     }
     public void showImage() {
-        TextView test1234 = (TextView) findViewById(R.id.textViewShowData);
         Dialog builder = new Dialog(this);
         builder.requestWindowFeature(Window.FEATURE_NO_TITLE);
         builder.getWindow().setBackgroundDrawable(
@@ -699,18 +703,15 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
        // imageView.setImageURI(imageUriFullScreen);
         imageView.setImageBitmap(fullscreenpicture);
         builder.addContentView(imageView, new RelativeLayout.LayoutParams(
-                1000,
-                1000));
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
         builder.show();
     }
 
     public Uri getImageUri(Context inContext, Bitmap inImage) {
-        TextView test1234 = (TextView) findViewById(R.id.textViewShowData);
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         inImage.compress(Bitmap.CompressFormat.JPEG, 100, bytes);
         String path = MediaStore.Images.Media.insertImage(inContext.getContentResolver(), inImage, "Title", null);
-        test1234.setText(path);
-        test1234.setText("proba 123");
         return Uri.parse(path);
     }
 
@@ -722,8 +723,8 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             bothSides = "jednostrano";
         }
         dialog_for_sending("http://207.154.235.97/login/lista_kopirnica.php",
-                "Želite li isprintati " + fileName + " u kopirnici " + odabranaKopirnica + ", s brojem kopija " + kopije + " te odabranim dijelom "
-                + whatToPrint + " sa sljedećim postavkama: " + inColor + ", " + bothSides + ", " + vrstaUveza,
+                "Želite li isprintati " + fileName + " u kopirnici: " + odabranaKopirnica + ", s brojem kopija: " + kopije + " brojem stranica: " + brojStranica + " te odabranim dijelom: "
+                + whatToPrint + ", sa sljedećim postavkama: " + inColor + ", " + bothSides + ", " + vrstaUveza,
                 "Pošaljite datoteku za printanje",
                 "Datoteka je uspješno poslana.",
                 "Greška u slanju preko veze.");
