@@ -17,7 +17,9 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
@@ -25,6 +27,7 @@ import java.util.Random;
 import android.animation.LayoutTransition;
 import android.animation.ObjectAnimator;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -40,6 +43,7 @@ import android.graphics.pdf.PdfRenderer;
 import android.media.Image;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
@@ -59,12 +63,14 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.RelativeLayout;
@@ -98,13 +104,27 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
     public List<String> spinner_array = new ArrayList<String>();
     private int cursor_postavke=0;
     ProgressDialog pd;
+    AlertDialog sendDialog;
+
+    String fileNamePath = "";
+    String fileName = "";
+    String vrstaUveza = "";
+    long kopije = 0;
+    String bothSides;
+    String inColor;
+    String whatToPrint = "";
+    String odabranaKopirnica = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list);
         final TextView aboutPrinting = (TextView) findViewById(R.id.textViewShowData);
+        final TextView pageCount = (TextView) findViewById(R.id.textViewBrojKopija);
+        final TextView selectedPagesStart = (TextView) findViewById(R.id.textViewSelectedPagesStart);
+        final TextView selectedPagesEnd = (TextView) findViewById(R.id.textViewSelectedPagesEnd);
         final TextView minus = (TextView) findViewById(R.id.textViewMinus);
+        final TextView selectedShop = (TextView) findViewById(R.id.textViewSelectedShop);
         final CheckBox obostrano = (CheckBox) findViewById(R.id.checkBoxBothSides);
         final CheckBox uBoji = (CheckBox) findViewById(R.id.checkBoxInColor);
         final ImageView imageThumbnail = (ImageView) findViewById(R.id.imageViewShowPDF);
@@ -116,6 +136,8 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         final RadioButton bezUveza = (RadioButton) findViewById(R.id.radioButtonBezUveza);
         final RadioButton mekiUvez = (RadioButton) findViewById(R.id.radioButtonMekiUvez);
         final RadioButton cijelispis = (RadioButton) findViewById(R.id.radioButtonPrintAll);
+        final Spinner spinnerSelection = (Spinner) findViewById(R.id.spinnerPrintList);
+
 
         if(cursor_postavke==0){
             Button previous_button = (Button) findViewById(R.id.previous_postavke);
@@ -153,10 +175,12 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                 String trenutniText = (String) aboutPrinting.getText();
                 if (uBoji.isChecked()) {
                     aboutPrinting.setText(trenutniText + "\n\tU boji");
+                    inColor = "u boji";
                 }
                 else {
                     trenutniText = trenutniText.replaceAll("\\n\\tU boji", "");
                     aboutPrinting.setText(trenutniText);
+                    inColor = "crno-bijelo";
                 }
             }
         });
@@ -167,10 +191,12 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                 String trenutniText = (String) aboutPrinting.getText();
                 if (obostrano.isChecked()) {
                     aboutPrinting.setText(trenutniText + "\n\tObostrano");
+                    bothSides = "obostrano";
                 }
                 else {
                     trenutniText = trenutniText.replaceAll("\\n\\tObostrano", "");
                     aboutPrinting.setText(trenutniText);
+                    bothSides = "jednostrano";
                 }
             }
         });
@@ -179,10 +205,10 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             @Override
             public boolean onEditorAction(TextView textView, int i, KeyEvent keyEvent) {
                 if (i == EditorInfo.IME_ACTION_DONE){
-                    String trenutniText = (String) aboutPrinting.getText();
-                    aboutPrinting.setText(trenutniText + "\n\tBroj kopija: " + brojKopija.getText().toString());
+                    pageCount.setText("\n\tBroj kopija: " + brojKopija.getText().toString());
                     InputMethodManager imm = (InputMethodManager) textView.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
                     imm.hideSoftInputFromWindow(textView.getWindowToken(), 0);
+                    kopije = Long.parseLong(brojKopija.getText().toString());
                     return true;
                 }
                 return false;
@@ -194,19 +220,22 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             public void onCheckedChanged(RadioGroup radioGroup, @IdRes int i) {
                 String trenutniText = (String) aboutPrinting.getText();
                 if (bezUveza.isChecked()){
-                    trenutniText = trenutniText.replaceAll("\\n\\tMeki uveza", "");
+                    trenutniText = trenutniText.replaceAll("\\n\\tMeki uvez", "");
                     trenutniText = trenutniText.replaceAll("\\n\\tTvrdi uvez", "");
                     aboutPrinting.setText(trenutniText + "\n\tBez uveza");
+                    vrstaUveza = "bez uveza";
                 }
                 else if (mekiUvez.isChecked()){
                     trenutniText = trenutniText.replaceAll("\\n\\tBez uveza", "");
                     trenutniText = trenutniText.replaceAll("\\n\\tTvrdi uvez", "");
                     aboutPrinting.setText(trenutniText + "\n\tMeki uvez");
+                    vrstaUveza = "meki uvez";
                 }
                 else {
                     trenutniText = trenutniText.replaceAll("\\n\\tBez uveza", "");
                     trenutniText = trenutniText.replaceAll("\\n\\tMeki uvez", "");
                     aboutPrinting.setText(trenutniText + "\n\tTvrdi uvez");
+                    vrstaUveza = "tvrdi uvez";
                 }
             }
         });
@@ -214,21 +243,67 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         ispis.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup radioGroup, @IdRes int i) {
-                String trenutniText = (String) aboutPrinting.getText();
                 if (cijelispis.isChecked()){
+                    selectedPagesStart.setText("\n\tIsprintaj sve");
                     minus.setVisibility(INVISIBLE);
                     startPage.setVisibility(INVISIBLE);
                     endPage.setVisibility(INVISIBLE);
+                    selectedPagesEnd.setText("");
+                    whatToPrint = "isprintaj sve";
                 }
                 else {
                     minus.setVisibility(View.VISIBLE);
                     startPage.setVisibility(View.VISIBLE);
                     endPage.setVisibility(View.VISIBLE);
+                    selectedPagesStart.setText("");
+                    selectedPagesEnd.setText("");
                 }
             }
         });
 
+        startPage.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView textView, int i, KeyEvent keyEvent) {
+                if (i == EditorInfo.IME_ACTION_DONE){
+                    String trenutniText = (String) selectedPagesEnd.getText();
+                    selectedPagesStart.setText("\n\tPočetna: " + startPage.getText().toString());
+                    InputMethodManager imm = (InputMethodManager) textView.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+                    imm.hideSoftInputFromWindow(textView.getWindowToken(), 0);
+                    whatToPrint = "Početna: " + startPage.getText().toString() + minus.getText().toString() + trenutniText;
+                    return true;
+                }
+                return false;
+            }
+        });
 
+        endPage.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView textView, int i, KeyEvent keyEvent) {
+                if (i == EditorInfo.IME_ACTION_DONE){
+                    String trenutniText = (String) selectedPagesStart.getText();
+                    selectedPagesEnd.setText("\n\tZavršna: " + endPage.getText().toString());
+                    InputMethodManager imm = (InputMethodManager) textView.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+                    imm.hideSoftInputFromWindow(textView.getWindowToken(), 0);
+                    whatToPrint = trenutniText + minus.getText().toString() + "Završna: " + endPage.getText().toString();
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        spinnerSelection.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                String selectedItemText = (String) adapterView.getItemAtPosition(i);
+                selectedShop.setText(selectedItemText);
+                odabranaKopirnica = selectedItemText;
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+
+            }
+        });
 /*When the button (. . . ) is pressed user can select file he wants to send for printing. It is allowed only to pick
  * .pdf, .csv, .txt, .xml, .docx files */
         Button openFile = (Button) findViewById(R.id.buttonSendFile);
@@ -287,6 +362,8 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                     generateImageFromPdf(uri);
                     editTextFile.setText(displayName, TextView.BufferType.EDITABLE);
                     Log.i(TAG, uri.getPath());
+                    fileName = displayName;
+                    fileNamePath = filePath;
                 }
             }
         }
@@ -426,13 +503,11 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                 }
 
                 //Put contents of List<Strings> inside a spinner through ArrayAdapter
-                Spinner spinner = (Spinner) findViewById(R.id.spinnerPrintList);
+                final Spinner spinner = (Spinner) findViewById(R.id.spinnerPrintList);
 
                 ArrayAdapter<String> spinnerArrayAdapter = new ArrayAdapter<String>(PrintActivity.this,   android.R.layout.simple_spinner_item, spinner_array);
                 spinnerArrayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                 spinner.setAdapter(spinnerArrayAdapter);
-
-
             }
 
 
@@ -496,6 +571,10 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                 Intent intent = new Intent(this, LoginActivity.class);
                 //intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
                 startActivity(intent);
+                return true;
+
+            case R.id.action_sendFile:
+                send_file();
                 return true;
 
             default:
@@ -633,4 +712,110 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         String path = MediaStore.Images.Media.insertImage(inContext.getContentResolver(), inImage, "Title", null);
         return Uri.parse(path);
     }
+
+    public void send_file(){
+        if (inColor == null ){
+            inColor = "crno-bijelo";
+        }
+        if (bothSides == null){
+            bothSides = "jednostrano";
+        }
+        dialog_for_sending("http://207.154.235.97/login/lista_kopirnica.php",
+                "Želite li isprintati " + fileName + " u kopirnici " + odabranaKopirnica + ", s brojem kopija " + kopije + " te odabranim dijelom "
+                + whatToPrint + " sa sljedećim postavkama: " + inColor + ", " + bothSides + ", " + vrstaUveza,
+                "Pošaljite datoteku za printanje",
+                "Datoteka je uspješno poslana.",
+                "Greška u slanju preko veze.");
+    }
+
+
+    private void showToastFromDialog(String message){
+        Toast.makeText(this, message , Toast.LENGTH_SHORT).show();
+    }
+
+    private void dialog_for_sending(final String urladdress,
+                                    String dlgMessage, String dlgTitle,
+                                    final String dlgResultOK, final String dlgResultNOTok){
+
+        // Let's design dialog programatically:
+        // It will contain title, text, editbox, and progressbar. And 2 buttons, of course.
+        // Progress bar will be shown only when network operation lasts longer.
+        final SharedPreferences pref_print=this.getSharedPreferences("Login",0);
+        final LinearLayout myDialogLayout = new LinearLayout(this);
+        myDialogLayout.setOrientation(LinearLayout.VERTICAL);
+        final ProgressBar myBar = new ProgressBar(this, null, android.R.attr.progressBarStyleLarge);
+        // myDialogLayout.addView(myBar); // only when network operation is performed
+
+        final AlertDialog.Builder alertDlg = new AlertDialog.Builder(this);
+        alertDlg.setPositiveButton("Send", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+            }
+        });
+        alertDlg.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                return;
+            }
+        });
+
+        sendDialog = alertDlg.create();
+        sendDialog.setMessage(dlgMessage);
+        sendDialog.setTitle(dlgTitle);
+        sendDialog.setView(myDialogLayout);
+
+        /*
+        Add an OnShowListener to change the OnClickListener on the first time the alert is shown.
+        Calling getButton() before the alert is shown will return null.
+        Then use a regular View.OnClickListener for the button, which will not dismiss
+        the AlertDialog after it has been called.
+        */
+
+        sendDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialog) {
+
+                final Button button = sendDialog.getButton(DialogInterface.BUTTON_POSITIVE);
+                button.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                            // SEND highscore via network!
+                            myDialogLayout.addView(myBar);
+                            button.setEnabled(false);
+                            sendDialog.getButton(DialogInterface.BUTTON_NEGATIVE).setEnabled(false);
+
+                            SendTask mySendTask = new SendTask(
+                                    urladdress,
+                                    vrstaUveza,
+                                    odabranaKopirnica,
+                                    pref_print.getString("id", null),
+                                    kopije,
+                                    fileNamePath,
+                                    fileName,
+                                    inColor,
+                                    bothSides,
+                                    whatToPrint,
+                                    vrstaUveza);
+                            mySendTask.setNetworkOperationFinished(new SendTask.NetworkOperationFinished() {
+                                @Override
+                                public void onNetworkOperationFinished(String response) {
+                                    myBar.setVisibility(View.INVISIBLE);
+                                    sendDialog.cancel();
+                                    if (response!="") {
+                                        showToastFromDialog(dlgResultOK);
+                                    } else {
+                                        showToastFromDialog(dlgResultNOTok);
+                                    }
+                                }
+                            });
+                            mySendTask.execute();
+                    }
+                });
+            }
+        });
+
+        sendDialog.show();
+    }
+
 }
+
