@@ -9,6 +9,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -115,6 +116,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
     String whatToPrint = "";
     String odabranaKopirnica = "";
     Uri imageUriFullScreen;
+    Bitmap fullscreenpicture;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -390,9 +392,10 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
 
             Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
             pdfiumCore.renderPageBitmap(pdfDocument, bmp, pageNumber, 0, 0, width, height);
+            fullscreenpicture = bmp;
             saveImage(bmp);
             showPdf.setImageBitmap(bmp);
-            imageUriFullScreen = getImageUri(this, bmp);
+       //     imageUriFullScreen = getImageUri(this, bmp);
             int pageCount = pdfiumCore.getPageCount(pdfDocument);
             String trenutniText = (String) textViewShowData.getText();
             textViewShowData.setText(trenutniText + "\n\tBroj stranica: " + Integer.toString(pageCount));
@@ -680,6 +683,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         }
     }
     public void showImage() {
+        TextView test1234 = (TextView) findViewById(R.id.textViewShowData);
         Dialog builder = new Dialog(this);
         builder.requestWindowFeature(Window.FEATURE_NO_TITLE);
         builder.getWindow().setBackgroundDrawable(
@@ -692,17 +696,21 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         });
 
         ImageView imageView = new ImageView(this);
-        imageView.setImageURI(imageUriFullScreen);
+       // imageView.setImageURI(imageUriFullScreen);
+        imageView.setImageBitmap(fullscreenpicture);
         builder.addContentView(imageView, new RelativeLayout.LayoutParams(
-                1200,
-                1200));
+                1000,
+                1000));
         builder.show();
     }
 
     public Uri getImageUri(Context inContext, Bitmap inImage) {
+        TextView test1234 = (TextView) findViewById(R.id.textViewShowData);
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         inImage.compress(Bitmap.CompressFormat.JPEG, 100, bytes);
         String path = MediaStore.Images.Media.insertImage(inContext.getContentResolver(), inImage, "Title", null);
+        test1234.setText(path);
+        test1234.setText("proba 123");
         return Uri.parse(path);
     }
 
