@@ -114,6 +114,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
     String inColor;
     String whatToPrint = "";
     String odabranaKopirnica = "";
+    Uri imageUriFullScreen;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -378,8 +379,6 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         TextView textViewShowData = (TextView) findViewById(R.id.textViewShowData);
         int pageNumber = 0;
         PdfiumCore pdfiumCore = new PdfiumCore(this);
-        SharedPreferences settings = getSharedPreferences("image_URI", 0);
-        SharedPreferences.Editor editor = settings.edit();
         try {
             //http://www.programcreek.com/java-api-examples/index.php?api=android.os.ParcelFileDescriptor
             ParcelFileDescriptor fd = getContentResolver().openFileDescriptor(pdfUri, "r");
@@ -393,9 +392,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             pdfiumCore.renderPageBitmap(pdfDocument, bmp, pageNumber, 0, 0, width, height);
             saveImage(bmp);
             showPdf.setImageBitmap(bmp);
-            Uri uri = getImageUri(this, bmp);
-            editor.putString("imageURI", uri.toString());
-            editor.commit();
+            imageUriFullScreen = getImageUri(this, bmp);
             int pageCount = pdfiumCore.getPageCount(pdfDocument);
             String trenutniText = (String) textViewShowData.getText();
             textViewShowData.setText(trenutniText + "\n\tBroj stranica: " + Integer.toString(pageCount));
@@ -694,12 +691,8 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             }
         });
 
-        SharedPreferences settings = this.getSharedPreferences("image_URI", 0);
-        String imageUriString = settings.getString("imageURI", null);
-        Uri imageUri = Uri.parse(imageUriString);
-
         ImageView imageView = new ImageView(this);
-        imageView.setImageURI(imageUri);
+        imageView.setImageURI(imageUriFullScreen);
         builder.addContentView(imageView, new RelativeLayout.LayoutParams(
                 1200,
                 1200));
