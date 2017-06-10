@@ -1,6 +1,8 @@
 package com.example.arbi.printngo;
 
+import android.net.Uri;
 import android.os.AsyncTask;
+import android.util.Log;
 
 import java.io.File;
 import java.net.HttpURLConnection;
@@ -11,6 +13,8 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+
+import static android.content.ContentValues.TAG;
 
 /**
  * Created by Sandi on 9.3.2016..
@@ -141,6 +145,7 @@ public class SendTask extends AsyncTask<String, String, String> {
 
         } catch (Exception ex) {
             finalResponse="";
+            ex.printStackTrace();
         }
     }
 

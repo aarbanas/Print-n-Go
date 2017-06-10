@@ -51,6 +51,7 @@ import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.support.annotation.IdRes;
 import android.support.annotation.NonNull;
+import android.support.annotation.StringDef;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -89,6 +90,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import in.gauriinfotech.commons.Commons;
+
 import static android.view.View.INVISIBLE;
 
 
@@ -116,7 +119,6 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
     String inColor;
     String whatToPrint = "";
     String odabranaKopirnica = "";
-    Uri imageUriFullScreen;
     Bitmap fullscreenpicture;
 
     @Override
@@ -342,15 +344,14 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                     String filePath = uri.toString();
                     File myFile = new File(filePath);
                     String displayName = null;
-                    //editTextFile.setText(filePath, TextView.BufferType.EDITABLE);
-                    int count = 0;
                     if (filePath.startsWith("content://")) {
-                        Cursor cursor = null;
-
+                      Cursor cursor = null;
                         try {
                             cursor = this.getContentResolver().query(uri, null, null, null, null);
                             if (cursor != null && cursor.moveToFirst()) {
                                 displayName = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+                                String fullPath = Commons.getPath(uri, this);
+                                fileNamePath = fullPath;
                             }
 
                         } finally {
@@ -358,6 +359,9 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                         }
                     } else if (filePath.startsWith("file://")) {
                         displayName = myFile.getName();
+                        String tmpfilepath = myFile.getAbsolutePath();
+                        tmpfilepath = tmpfilepath.replaceAll("file:/", "");
+                        fileNamePath = tmpfilepath;
                     }
 
                     editTextFile.setText(displayName, TextView.BufferType.EDITABLE);
@@ -367,7 +371,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                     editTextFile.setText(displayName, TextView.BufferType.EDITABLE);
                     Log.i(TAG, uri.getPath());
                     fileName = displayName;
-                    fileNamePath = filePath;
+                    textViewShowData.setText(fileNamePath);
                 }
             }
         }
@@ -396,7 +400,6 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             fullscreenpicture = bmp;
             saveImage(bmp);
             showPdf.setImageBitmap(bmp);
-       //     imageUriFullScreen = getImageUri(this, bmp);
             int pageCount = pdfiumCore.getPageCount(pdfDocument);
             String trenutniText = (String) textViewShowData.getText();
             textViewShowData.setText(trenutniText + "\n\tBroj stranica: " + Integer.toString(pageCount));
@@ -700,19 +703,11 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         });
 
         ImageView imageView = new ImageView(this);
-       // imageView.setImageURI(imageUriFullScreen);
         imageView.setImageBitmap(fullscreenpicture);
         builder.addContentView(imageView, new RelativeLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         builder.show();
-    }
-
-    public Uri getImageUri(Context inContext, Bitmap inImage) {
-        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-        inImage.compress(Bitmap.CompressFormat.JPEG, 100, bytes);
-        String path = MediaStore.Images.Media.insertImage(inContext.getContentResolver(), inImage, "Title", null);
-        return Uri.parse(path);
     }
 
     public void send_file(){
@@ -722,7 +717,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         if (bothSides == null){
             bothSides = "jednostrano";
         }
-        dialog_for_sending("http://207.154.235.97/login/lista_kopirnica.php",
+        dialog_for_sending("http://207.154.235.97/files/sendfile.php",
                 "Želite li isprintati " + fileName + " u kopirnici: " + odabranaKopirnica + ", s brojem kopija: " + kopije + " brojem stranica: " + brojStranica + " te odabranim dijelom: "
                 + whatToPrint + ", sa sljedećim postavkama: " + inColor + ", " + bothSides + ", " + vrstaUveza,
                 "Pošaljite datoteku za printanje",
@@ -743,6 +738,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         // It will contain title, text, editbox, and progressbar. And 2 buttons, of course.
         // Progress bar will be shown only when network operation lasts longer.
         final SharedPreferences pref_print=this.getSharedPreferences("Login",0);
+        final String user = pref_print.getString("ime", null) ;
         final LinearLayout myDialogLayout = new LinearLayout(this);
         myDialogLayout.setOrientation(LinearLayout.VERTICAL);
         final ProgressBar myBar = new ProgressBar(this, null, android.R.attr.progressBarStyleLarge);
@@ -790,7 +786,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                                     urladdress,
                                     vrstaUveza,
                                     odabranaKopirnica,
-                                    pref_print.getString("id", null),
+                                    user,
                                     kopije,
                                     fileNamePath,
                                     fileName,
@@ -817,6 +813,15 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         });
 
         sendDialog.show();
+    }
+
+    public String getRealPathFromURI(Uri contentUri)
+    {
+        String[] proj = { MediaStore.Audio.Media.DATA };
+        Cursor cursor = managedQuery(contentUri, proj, null, null, null);
+        int column_index = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
+        cursor.moveToFirst();
+        return cursor.getString(column_index);
     }
 
 }
