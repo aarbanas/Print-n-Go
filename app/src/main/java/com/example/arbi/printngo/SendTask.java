@@ -141,6 +141,7 @@ public class SendTask extends AsyncTask<String, String, String> {
             if (feedback.toString().equals("200"))
             {
                 finalResponse=feedback.toString();
+                System.out.print(kopirnica+"\n");
 
 
             }

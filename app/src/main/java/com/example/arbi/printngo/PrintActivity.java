@@ -126,6 +126,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
     String odabranaKopirnica = "";
     Bitmap fullscreenpicture;
     String copyShopAdress = "";
+    String tmpText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -318,12 +319,14 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
                 String selectedItemText = (String) adapterView.getItemAtPosition(i);
                 if(selectedItemText != "Odaberite kopirnicu..."){
-                    selectedItemText = selectedItemText.split("                              #")[0];
-                    String tmpText = selectedItemText.substring(selectedItemText.indexOf(", ") + 1);
+
+                    odabranaKopirnica = selectedItemText.split("                              #")[1];
+                    tmpText = selectedItemText.split("                              #")[0].substring(selectedItemText.indexOf(", ") + 1);
                     tmpText = tmpText.split("                              #")[0];
-                    selectedShop.setText("\t" + selectedItemText);
-                    odabranaKopirnica = selectedItemText;
+                    selectedShop.setText("\t" + selectedItemText.split("                              #")[0]);
+
                     copyShopAdress = tmpText;
+                    tmpText=selectedItemText.split("                              #")[0];
                 }
 
             }
@@ -621,7 +624,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         Intent intent = new Intent(this,MapsActivity.class);
         intent.putExtra("LATITUDE_ID", latitude);
         intent.putExtra("LONGITUDE_ID", longitude);
-        intent.putExtra("NAZIV KOPIRNICE", odabranaKopirnica);
+        intent.putExtra("NAZIV KOPIRNICE", tmpText);
         startActivity(intent);
    //  tmt.setText(copyShopAdress);
     }
