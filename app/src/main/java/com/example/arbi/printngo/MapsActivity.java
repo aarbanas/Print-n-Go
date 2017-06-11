@@ -40,11 +40,20 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     Location mLastLocation;
     Marker mCurrLocationMarker;
     LocationRequest mLocationRequest;
-
+    double latitudeFromPrint=0;
+    double longitudeFromPrint=0;
+    String adresaNaziv = "";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+        Bundle extras = getIntent().getExtras();
+
+        if (extras != null){
+            latitudeFromPrint = extras.getDouble("LATITUDE_ID");
+            longitudeFromPrint = extras.getDouble("LONGITUDE_ID");
+            adresaNaziv = extras.getString("NAZIV KOPIRNICE");
+        }
 
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             checkLocationPermission();
@@ -134,12 +143,20 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             mCurrLocationMarker.remove();
         }
 
+        if(latitudeFromPrint!=0){
+            LatLng latLng1 = new LatLng(latitudeFromPrint, longitudeFromPrint);
+            MarkerOptions markerOptions = new MarkerOptions();
+            markerOptions.position(latLng1);
+            markerOptions.title(adresaNaziv);
+            markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA));
+            mCurrLocationMarker = mMap.addMarker(markerOptions);
+        }
         //Place current location marker
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
         MarkerOptions markerOptions = new MarkerOptions();
         markerOptions.position(latLng);
         markerOptions.title("Vaša trenutna lokacija.");
-        markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA));
+        markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE));
         mCurrLocationMarker = mMap.addMarker(markerOptions);
 
         //move map camera
@@ -247,4 +264,5 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         AlertDialog alert = builder.create();
         alert.show();
     }
+
 }

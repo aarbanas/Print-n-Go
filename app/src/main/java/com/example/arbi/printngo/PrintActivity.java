@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
+import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -20,9 +21,11 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 
 import android.animation.LayoutTransition;
@@ -41,6 +44,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.pdf.PdfRenderer;
+import android.location.Geocoder;
 import android.media.Image;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -91,6 +95,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import in.gauriinfotech.commons.Commons;
+import okhttp3.Address;
 
 import static android.view.View.INVISIBLE;
 
@@ -120,6 +125,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
     String whatToPrint = "";
     String odabranaKopirnica = "";
     Bitmap fullscreenpicture;
+    String copyShopAdress = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -211,7 +217,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             @Override
             public boolean onEditorAction(TextView textView, int i, KeyEvent keyEvent) {
                 if (i == EditorInfo.IME_ACTION_DONE){
-                    pageCount.setText("\n\tBroj kopija: " + brojKopija.getText().toString());
+                    pageCount.setText("\tBroj kopija: " + brojKopija.getText().toString());
                     InputMethodManager imm = (InputMethodManager) textView.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
                     imm.hideSoftInputFromWindow(textView.getWindowToken(), 0);
                     kopije = Long.parseLong(brojKopija.getText().toString());
@@ -221,6 +227,9 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             }
         });
 
+        uvez.check(bezUveza.getId());
+        aboutPrinting.setText("\n\tBez uveza");
+        vrstaUveza = "bez uveza";
         uvez.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup radioGroup, @IdRes int i) {
@@ -246,6 +255,13 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             }
         });
 
+        ispis.check(cijelispis.getId());
+        selectedPagesStart.setText("\n\tIsprintaj sve");
+        minus.setVisibility(INVISIBLE);
+        startPage.setVisibility(INVISIBLE);
+        endPage.setVisibility(INVISIBLE);
+        selectedPagesEnd.setText("");
+        whatToPrint = "isprintaj sve";
         ispis.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup radioGroup, @IdRes int i) {
@@ -272,10 +288,10 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             public boolean onEditorAction(TextView textView, int i, KeyEvent keyEvent) {
                 if (i == EditorInfo.IME_ACTION_DONE){
                     String trenutniText = (String) selectedPagesEnd.getText();
-                    selectedPagesStart.setText("\n\tPočetna: " + startPage.getText().toString());
+                    selectedPagesStart.setText("\tPočetna: " + startPage.getText().toString());
                     InputMethodManager imm = (InputMethodManager) textView.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
                     imm.hideSoftInputFromWindow(textView.getWindowToken(), 0);
-                    whatToPrint = "Početna: " + startPage.getText().toString() + minus.getText().toString() + trenutniText;
+                    whatToPrint = "Početna: " + startPage.getText().toString() + " " + minus.getText().toString() + trenutniText;
                     return true;
                 }
                 return false;
@@ -287,10 +303,10 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             public boolean onEditorAction(TextView textView, int i, KeyEvent keyEvent) {
                 if (i == EditorInfo.IME_ACTION_DONE){
                     String trenutniText = (String) selectedPagesStart.getText();
-                    selectedPagesEnd.setText("\n\tZavršna: " + endPage.getText().toString());
+                    selectedPagesEnd.setText("Završna: " + endPage.getText().toString());
                     InputMethodManager imm = (InputMethodManager) textView.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
                     imm.hideSoftInputFromWindow(textView.getWindowToken(), 0);
-                    whatToPrint = trenutniText + minus.getText().toString() + "Završna: " + endPage.getText().toString();
+                    whatToPrint = trenutniText + minus.getText().toString() + " " + "Završna: " + endPage.getText().toString();
                     return true;
                 }
                 return false;
@@ -301,8 +317,15 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
                 String selectedItemText = (String) adapterView.getItemAtPosition(i);
-                selectedShop.setText(selectedItemText.split("                              #")[0]);
-                odabranaKopirnica = selectedItemText;
+                if(selectedItemText != "Odaberite kopirnicu..."){
+                    selectedItemText = selectedItemText.split("                              #")[0];
+                    String tmpText = selectedItemText.substring(selectedItemText.indexOf(", ") + 1);
+                    tmpText = tmpText.split("                              #")[0];
+                    selectedShop.setText("\t" + selectedItemText);
+                    odabranaKopirnica = selectedItemText;
+                    copyShopAdress = tmpText;
+                }
+
             }
 
             @Override
@@ -336,7 +359,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
         EditText editTextFile = (EditText) findViewById(R.id.editTextFilePath);
-        TextView textViewShowData = (TextView) findViewById(R.id.textViewShowData);
+        // TextView textViewShowData = (TextView) findViewById(R.id.textViewShowData);
         switch(requestCode) {
             case ACTIVITY_CHOOSE_FILE: {
                 if (resultCode == RESULT_OK){
@@ -345,7 +368,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                     File myFile = new File(filePath);
                     String displayName = null;
                     if (filePath.startsWith("content://")) {
-                      Cursor cursor = null;
+                        Cursor cursor = null;
                         try {
                             cursor = this.getContentResolver().query(uri, null, null, null, null);
                             if (cursor != null && cursor.moveToFirst()) {
@@ -371,7 +394,6 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                     editTextFile.setText(displayName, TextView.BufferType.EDITABLE);
                     Log.i(TAG, uri.getPath());
                     fileName = displayName;
-                    textViewShowData.setText(fileNamePath);
                 }
             }
         }
@@ -383,7 +405,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
     //Generate image from first page, and count number of pages (only for PDF files)
     void generateImageFromPdf(Uri pdfUri) {
         ImageView showPdf = (ImageView) findViewById(R.id.imageViewShowPDF);
-        TextView textViewShowData = (TextView) findViewById(R.id.textViewShowData);
+        TextView textViewBrojstranica = (TextView) findViewById(R.id.textViewBrojStranica);
         int pageNumber = 0;
         PdfiumCore pdfiumCore = new PdfiumCore(this);
         try {
@@ -401,9 +423,8 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             saveImage(bmp);
             showPdf.setImageBitmap(bmp);
             int pageCount = pdfiumCore.getPageCount(pdfDocument);
-            String trenutniText = (String) textViewShowData.getText();
-            textViewShowData.setText(trenutniText + "\n\tBroj stranica: " + Integer.toString(pageCount));
             brojStranica = Integer.toString(pageCount);
+            textViewBrojstranica.setText("\tBroj stranica: " + brojStranica);
             pdfiumCore.closeDocument(pdfDocument); // important!
         } catch(Exception e) {
             //todo with exception
@@ -411,7 +432,6 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
     }
 
     private class JsonTask extends AsyncTask<String, String, String> {
-
         //On pre execute show progress dialog with message "Učitavanje"
         protected void onPreExecute() {
             super.onPreExecute();
@@ -423,7 +443,6 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         }
         //Make connection to server and fetch server response in background
         protected String doInBackground(String... params) {
-
 
             HttpURLConnection connection = null;
             BufferedReader reader = null;
@@ -477,7 +496,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             }
 
             if (result != null) {
-
+                spinner_array.add("Odaberite kopirnicu...");
                 // ...
                 JSONArray json = null;
                 try {
@@ -491,22 +510,19 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                     JSONObject e = null;
                     try {
                         e = json.getJSONObject(i);
+
                     } catch (JSONException e1) {
                         e1.printStackTrace();
                     }
 
                     try {
-
-                        spinner_array.add(e.getString("naziv")+" "+ e.getString("adresa")+"                              #"+e.getString("idKopirnice"));
-
-
+                        spinner_array.add(e.getString("naziv")+", "+ e.getString("adresa")+"                              #"+e.getString("idKopirnice"));
                     } catch (JSONException e1) {
                         e1.printStackTrace();
                     }
 
 
                 }
-
                 //Put contents of List<Strings> inside a spinner through ArrayAdapter
                 final Spinner spinner = (Spinner) findViewById(R.id.spinnerPrintList);
 
@@ -595,10 +611,19 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
 
     }
 
-    public void viewMap(View view) {
-
+    public void viewMap(View view) throws IOException {
+        TextView tmt = (TextView) findViewById(R.id.textViewShowData);
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+        List<android.location.Address> lastLocationName =  geocoder.getFromLocationName(copyShopAdress, 1);
+        double latitude = lastLocationName.get(0).getLatitude();
+        double longitude = lastLocationName.get(0).getLongitude();
+     //   tmt.setText(String.valueOf(latitude) + " " + String.valueOf(longitude));
         Intent intent = new Intent(this,MapsActivity.class);
+        intent.putExtra("LATITUDE_ID", latitude);
+        intent.putExtra("LONGITUDE_ID", longitude);
+        intent.putExtra("NAZIV KOPIRNICE", odabranaKopirnica);
         startActivity(intent);
+   //  tmt.setText(copyShopAdress);
     }
 
     public void onClick(View v) {
@@ -718,8 +743,9 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             bothSides = "jednostrano";
         }
         dialog_for_sending("http://207.154.235.97/files/sendfile-baza.php",
-                "\n\nŽelite li isprintati " + fileName + " u kopirnici: " + odabranaKopirnica.split("                              #")[0] + ", s brojem kopija: " + kopije + " brojem stranica: " + brojStranica + " te odabranim dijelom: "
-                + whatToPrint + ", sa sljedećim postavkama: " + inColor + ", " + bothSides + ", " + vrstaUveza,
+                 "\n\nŽelite li isprintati " + fileName + " u kopirnici: " + odabranaKopirnica + ", s brojem kopija: "
+                         + kopije + " brojem stranica: " + brojStranica + " te odabranim dijelom: "
+                        + whatToPrint + ", sa sljedećim postavkama: " + inColor + ", " + bothSides + ", " + vrstaUveza,
                 "Pošaljite datoteku za printanje",
                 "Datoteka je uspješno poslana.",
                 "Greška u slanju preko veze.");
@@ -777,39 +803,35 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                 button.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                            myDialogLayout.addView(myBar);
-                            button.setEnabled(false);
-                            sendDialog.getButton(DialogInterface.BUTTON_NEGATIVE).setEnabled(false);
+                        myDialogLayout.addView(myBar);
+                        button.setEnabled(false);
+                        sendDialog.getButton(DialogInterface.BUTTON_NEGATIVE).setEnabled(false);
 
-                            SendTask mySendTask = new SendTask(
-                                    urladdress,
-                                    vrstaUveza,
-                                    odabranaKopirnica.split("                              #")[1],
-                                    user,
-                                    kopije,
-                                    fileNamePath,
-                                    fileName,
-                                    inColor,
-                                    bothSides,
-                                    whatToPrint,
-                                    vrstaUveza);
-                            mySendTask.setNetworkOperationFinished(new SendTask.NetworkOperationFinished() {
-                                @Override
-                                public void onNetworkOperationFinished(String response) {
-                                    myBar.setVisibility(View.INVISIBLE);
-                                    sendDialog.cancel();
-                                    if (response!="") {
-                                        showToastFromDialog(dlgResultOK);
-                                        Intent intentService = new Intent(PrintActivity.this, NotificationService.class);
-                                        startService(intentService);
-                                        //stopService(intentService);
-                                    } else {
-                                        showToastFromDialog(dlgResultNOTok);
-                                    }
+                        SendTask mySendTask = new SendTask(
+                                urladdress,
+                                vrstaUveza,
+                                odabranaKopirnica,
+                                user,
+                                kopije,
+                                fileNamePath,
+                                fileName,
+                                inColor,
+                                bothSides,
+                                whatToPrint,
+                                vrstaUveza);
+                        mySendTask.setNetworkOperationFinished(new SendTask.NetworkOperationFinished() {
+                            @Override
+                            public void onNetworkOperationFinished(String response) {
+                                myBar.setVisibility(View.INVISIBLE);
+                                sendDialog.cancel();
+                                if (response!="") {
+                                    showToastFromDialog(dlgResultOK);
+                                } else {
+                                    showToastFromDialog(dlgResultNOTok);
                                 }
-                            });
-                            mySendTask.execute();
-
+                            }
+                        });
+                        mySendTask.execute();
                     }
                 });
             }
@@ -817,7 +839,6 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
 
         sendDialog.show();
     }
-
 
 }
 
