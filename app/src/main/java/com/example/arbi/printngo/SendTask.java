@@ -1,5 +1,6 @@
 package com.example.arbi.printngo;
 
+import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.util.Log;
@@ -140,6 +141,8 @@ public class SendTask extends AsyncTask<String, String, String> {
             if (feedback.toString().equals("200"))
             {
                 finalResponse=feedback.toString();
+
+
             }
 
 

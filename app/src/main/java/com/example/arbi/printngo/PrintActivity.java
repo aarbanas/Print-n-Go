@@ -301,7 +301,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
                 String selectedItemText = (String) adapterView.getItemAtPosition(i);
-                selectedShop.setText(selectedItemText);
+                selectedShop.setText(selectedItemText.split("                              #")[0]);
                 odabranaKopirnica = selectedItemText;
             }
 
@@ -497,7 +497,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
 
                     try {
 
-                        spinner_array.add(e.getString("naziv")+" "+ e.getString("adresa"));
+                        spinner_array.add(e.getString("naziv")+" "+ e.getString("adresa")+"                              #"+e.getString("idKopirnice"));
 
 
                     } catch (JSONException e1) {
@@ -717,8 +717,8 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         if (bothSides == null){
             bothSides = "jednostrano";
         }
-        dialog_for_sending("http://207.154.235.97/files/sendfile.php",
-                "Želite li isprintati " + fileName + " u kopirnici: " + odabranaKopirnica + ", s brojem kopija: " + kopije + " brojem stranica: " + brojStranica + " te odabranim dijelom: "
+        dialog_for_sending("http://207.154.235.97/files/sendfile-baza.php",
+                "\n\nŽelite li isprintati " + fileName + " u kopirnici: " + odabranaKopirnica.split("                              #")[0] + ", s brojem kopija: " + kopije + " brojem stranica: " + brojStranica + " te odabranim dijelom: "
                 + whatToPrint + ", sa sljedećim postavkama: " + inColor + ", " + bothSides + ", " + vrstaUveza,
                 "Pošaljite datoteku za printanje",
                 "Datoteka je uspješno poslana.",
@@ -738,7 +738,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         // It will contain title, text, editbox, and progressbar. And 2 buttons, of course.
         // Progress bar will be shown only when network operation lasts longer.
         final SharedPreferences pref_print=this.getSharedPreferences("Login",0);
-        final String user = pref_print.getString("ime", null) ;
+        final String user = pref_print.getString("id", null) ;
         final LinearLayout myDialogLayout = new LinearLayout(this);
         myDialogLayout.setOrientation(LinearLayout.VERTICAL);
         final ProgressBar myBar = new ProgressBar(this, null, android.R.attr.progressBarStyleLarge);
@@ -777,7 +777,6 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                 button.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                            // SEND highscore via network!
                             myDialogLayout.addView(myBar);
                             button.setEnabled(false);
                             sendDialog.getButton(DialogInterface.BUTTON_NEGATIVE).setEnabled(false);
@@ -785,7 +784,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                             SendTask mySendTask = new SendTask(
                                     urladdress,
                                     vrstaUveza,
-                                    odabranaKopirnica,
+                                    odabranaKopirnica.split("                              #")[1],
                                     user,
                                     kopije,
                                     fileNamePath,
@@ -801,12 +800,16 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                                     sendDialog.cancel();
                                     if (response!="") {
                                         showToastFromDialog(dlgResultOK);
+                                        Intent intentService = new Intent(PrintActivity.this, NotificationService.class);
+                                        startService(intentService);
+                                        //stopService(intentService);
                                     } else {
                                         showToastFromDialog(dlgResultNOTok);
                                     }
                                 }
                             });
                             mySendTask.execute();
+
                     }
                 });
             }
@@ -815,14 +818,6 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         sendDialog.show();
     }
 
-    public String getRealPathFromURI(Uri contentUri)
-    {
-        String[] proj = { MediaStore.Audio.Media.DATA };
-        Cursor cursor = managedQuery(contentUri, proj, null, null, null);
-        int column_index = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
-        cursor.moveToFirst();
-        return cursor.getString(column_index);
-    }
 
 }
 
