@@ -628,7 +628,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         protected void onPostExecute(jsonParsedData completeResult) {
             ArrayList<LatLng> points = null;
             PolylineOptions lineOptions = null;
-            MarkerOptions markerOptions = new MarkerOptions();
+          //  MarkerOptions markerOptions = new MarkerOptions();
 
             List<List<HashMap<String, String>>> result = completeResult.get_routeToDraw();
             String[] infoWalking = completeResult.get_walkingData();
