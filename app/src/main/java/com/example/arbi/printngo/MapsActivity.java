@@ -7,6 +7,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
@@ -17,8 +18,12 @@ import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -150,6 +155,37 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 DownloadTask downloadTask = new DownloadTask();
                 downloadTask.execute(url);
                 return false;
+            }
+        });
+
+        // Custom info window for the marker (supporting multiline snippet)
+        mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
+
+            @Override
+            public View getInfoWindow(Marker arg0) {
+                return null;
+            }
+
+            @Override
+            public View getInfoContents(Marker marker) {
+
+                LinearLayout info = new LinearLayout(MapsActivity.this);
+                info.setOrientation(LinearLayout.VERTICAL);
+                // Title
+                TextView title = new TextView(MapsActivity.this);
+                title.setTextColor(Color.BLACK);
+                title.setGravity(Gravity.CENTER);
+                title.setTypeface(null, Typeface.BOLD);
+                title.setText(marker.getTitle());
+                // Snippet
+                TextView snippet = new TextView(MapsActivity.this);
+                snippet.setTextColor(Color.GRAY);
+                snippet.setText(marker.getSnippet());
+                // Building infowindow layout
+                info.addView(title);
+                info.addView(snippet);
+
+                return info;
             }
         });
     }

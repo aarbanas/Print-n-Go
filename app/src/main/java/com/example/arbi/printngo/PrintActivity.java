@@ -120,7 +120,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
     String brojStranica = "";
     String fileName = "";
     String vrstaUveza = "";
-    long kopije = 0;
+    long kopije = 1;
     String bothSides;
     String inColor;
     String whatToPrint = "";
@@ -217,6 +217,8 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             }
         });
 
+        brojKopija.setText(String.valueOf(kopije));
+        pageCount.setText("\tBroj kopija: " + brojKopija.getText().toString());
         brojKopija.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView textView, int i, KeyEvent keyEvent) {
@@ -384,6 +386,9 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
 
                     copyShopAdress = tmpText;
                     tmpText=selectedItemText.split("                              #")[0];
+                }
+                else {
+                    odabranaKopirnica = "Odaberite kopirnicu...";
                 }
 
             }
