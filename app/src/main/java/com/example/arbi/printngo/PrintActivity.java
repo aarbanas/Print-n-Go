@@ -431,11 +431,11 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                     }
 
                     editTextFile.setText(displayName, TextView.BufferType.EDITABLE);
-                    Log.i(TAG, uri.getPath());
+                    //Log.i(TAG, uri.getPath());
                     //Generating image and counting page numbers of PDF file
                     generateImageFromPdf(uri);
                     editTextFile.setText(displayName, TextView.BufferType.EDITABLE);
-                    Log.i(TAG, uri.getPath());
+                   // Log.i(TAG, uri.getPath());
                     fileName = displayName;
                 }
             }
@@ -860,7 +860,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                                 fileName,
                                 inColor,
                                 bothSides,
-                                whatToPrint.split("-")[0].split(":")[1]+"-"+whatToPrint.split("-")[1].split(": ")[1],
+                                whatToPrint,
                                 vrstaUveza,
                                 brojStranica);
                         mySendTask.setNetworkOperationFinished(new SendTask.NetworkOperationFinished() {
@@ -870,6 +870,8 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                                 sendDialog.cancel();
                                 if (response!="") {
                                     showToastFromDialog(dlgResultOK);
+                                    Intent intentService = new Intent(PrintActivity.this, NotificationService.class);
+                                    startService(intentService);
                                 } else {
                                     showToastFromDialog(dlgResultNOTok);
                                 }
