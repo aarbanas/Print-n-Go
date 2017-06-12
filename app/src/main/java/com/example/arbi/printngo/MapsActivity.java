@@ -18,6 +18,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -69,7 +70,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     String adresaNaziv = "";
     ProgressDialog pd;
     Marker destination;
-    PolylineOptions lineIsLive = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,6 +98,17 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         getMenuInflater().inflate(R.menu.maps_activity_menu, menu);
         return true;
     }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_settings:
+                showMapTypeSelectorDialog();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
 //test
     /**
      * Manipulates the map once available.
@@ -111,7 +122,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-        mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+        mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
 
         //Initialize Google Play Services
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -134,14 +145,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 LatLng origin = mCurrLocationMarker.getPosition();
                 LatLng dest = destination.getPosition();
                 String url = getDirectionsUrl(origin, dest);
-
-             /*   if(lineIsLive != null){
-                    Polyline line = mMap.addPolyline(new PolylineOptions()
-                            .add(new LatLng(51.5, -0.1), new LatLng(40.7, -74.0))
-                            .width(5)
-                            .color(Color.RED));
-                    line.remove();
-                }*/
 
                 // Start downloading json data from Google Directions API:
                 DownloadTask downloadTask = new DownloadTask();
@@ -227,8 +230,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             MarkerOptions markerOptions = new MarkerOptions();
             markerOptions.position(latLng1);
             markerOptions.title(adresaNaziv);
-            markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA));
+            markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
             mMap.addMarker(markerOptions);
+        }
+        else {
+            new JsonTask().execute("http://207.154.235.97/login/lista_kopirnica.php");
         }
         //Place current location marker
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
@@ -242,7 +248,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
         mMap.animateCamera(CameraUpdateFactory.zoomTo(16));
 
-        new JsonTask().execute("http://207.154.235.97/login/lista_kopirnica.php");
         //stop location updates
         if (mGoogleApiClient != null) {
             LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
@@ -618,7 +623,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
 
             // Drawing polyline in the Google Map for the i-th route
-            lineIsLive = lineOptions;
             mMap.addPolyline(lineOptions);
 
             // Show walking info on the marker:
@@ -626,6 +630,52 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     "Duration: " + infoWalking[1]);
             destination.showInfoWindow();
         }
+    }
+
+    private static final CharSequence[] MAP_TYPE_ITEMS =
+            {"Cestovna", "Hibridna", "Satelitska", "Terenska"};
+
+    private void showMapTypeSelectorDialog() {
+        // Prepare the dialog by setting up a Builder.
+        final String fDialogTitle = "Odaberite Vrstu Mape";
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(fDialogTitle);
+
+        // Find the current map type to pre-check the item representing the current state.
+        int checkItem = mMap.getMapType() - 1;
+
+        // Add an OnClickListener to the dialog, so that the selection will be handled.
+        builder.setSingleChoiceItems(
+                MAP_TYPE_ITEMS,
+                checkItem,
+                new DialogInterface.OnClickListener() {
+
+                    public void onClick(DialogInterface dialog, int item) {
+                        // Locally create a finalised object.
+
+                        // Perform an action depending on which item was selected.
+                        switch (item) {
+                            case 1:
+                                mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+                                break;
+                            case 2:
+                                mMap.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
+                                break;
+                            case 3:
+                                mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+                                break;
+                            default:
+                                mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+                        }
+                        dialog.dismiss();
+                    }
+                }
+        );
+
+        // Build the dialog and show it.
+        AlertDialog fMapTypeDialog = builder.create();
+        fMapTypeDialog.setCanceledOnTouchOutside(true);
+        fMapTypeDialog.show();
     }
 
 }

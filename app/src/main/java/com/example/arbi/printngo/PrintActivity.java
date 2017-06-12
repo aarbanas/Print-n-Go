@@ -574,7 +574,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                 spinner.setAdapter(spinnerArrayAdapter);
             }
 
-
+            odabranaKopirnica = "Odaberite kopirnicu...";
         }
     }
 
