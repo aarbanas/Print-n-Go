@@ -21,6 +21,7 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Date;
 
 /**
  * Created by Luka on 11.6.2017..
@@ -43,7 +44,8 @@ public class NotificationService extends IntentService {
     @Override
     public void onHandleIntent(Intent intent) {
 
-        while (response!="Gotovo") {
+
+        while (response.split(",")[0]!="Gotovo") {
 
 
             SharedPreferences pref_print = this.getSharedPreferences("Login", 0);
@@ -111,9 +113,9 @@ public class NotificationService extends IntentService {
                     }
 
                     // Pass data to onPostExecute method
-                    Log.i(TAG, result.toString());
-                    response = result.toString();
 
+                    response = result.toString();
+                    Log.i(TAG,response.split(",")[0]);
 
                 } else {
 
@@ -128,7 +130,7 @@ public class NotificationService extends IntentService {
             }
 
 
-            if (response.equals("Gotovo")) {
+            if (response.split(",")[0].equals("Gotovo")) {
 
                  break;
             }
@@ -141,12 +143,17 @@ public class NotificationService extends IntentService {
         Notification noti = new Notification.Builder(this)
                 .setTicker("Ticker title")
                 .setContentTitle("Ispis je završen!")
-                .setContentText("Cijena ispisa je 30kn u kopirnici Scripta Rijeka")
+                .setContentText("Ispis vaše datoteke "+response.split(",")[1].replace("files/","")+" je završen")
                 .setSmallIcon(R.drawable.notifikacija_check)
                 .setContentIntent(PendingIntent.getActivity(this, 0, intentNotifikacija, 0)).getNotification();
-        noti.flags = Notification.FLAG_AUTO_CANCEL;
+
+        noti.flags |= Notification.FLAG_AUTO_CANCEL;
+        noti.flags |= Notification.COLOR_DEFAULT;
+        noti.flags |= Notification.DEFAULT_SOUND;
+        noti.flags |= Notification.DEFAULT_VIBRATE;
         NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        nm.notify(0, noti);
+        int inc = (int) ((new Date().getTime() / 1000L) % Integer.MAX_VALUE);
+        nm.notify(inc, noti);
 
         this.stopSelf();
     }

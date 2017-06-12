@@ -43,6 +43,10 @@ public class SendTask extends AsyncTask<String, String, String> {
     // Constructor
     public SendTask(String url, String uvez, String kopirnica,
                     String user, long brojKopija, String file, String fileName, String uBoji, String obostrano, String dioPrintanja, String vrstaUveza, String brojstranica) {
+
+        if(dioPrintanja!="isprintaj sve"){
+            dioPrintanja=dioPrintanja.split("-")[0].split(":")[1]+"-"+dioPrintanja.split("-")[1].split(": ")[1];
+        }
         this.urlAddress = url;
         this.uvez = uvez;
         this.kopirnica = kopirnica;
@@ -56,7 +60,6 @@ public class SendTask extends AsyncTask<String, String, String> {
         System.out.print(this.dioPrintanja+"\n");
         this.vrstaUveza = vrstaUveza;
         this.brojStranica = brojstranica;
-        System.out.print(this.brojStranica+"\n");
     }
 
 
