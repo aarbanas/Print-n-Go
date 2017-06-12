@@ -33,6 +33,7 @@ public class SendTask extends AsyncTask<String, String, String> {
     String obostrano;
     String dioPrintanja;
     String vrstaUveza;
+    String brojStranica;
 
     private HttpURLConnection conn;
     public static final int CONNECTION_TIMEOUT = 15 * 1000;
@@ -41,7 +42,7 @@ public class SendTask extends AsyncTask<String, String, String> {
 
     // Constructor
     public SendTask(String url, String uvez, String kopirnica,
-                    String user, long brojKopija, String file, String fileName, String uBoji, String obostrano, String dioPrintanja, String vrstaUveza) {
+                    String user, long brojKopija, String file, String fileName, String uBoji, String obostrano, String dioPrintanja, String vrstaUveza, String brojstranica) {
         this.urlAddress = url;
         this.uvez = uvez;
         this.kopirnica = kopirnica;
@@ -52,7 +53,10 @@ public class SendTask extends AsyncTask<String, String, String> {
         this.uBoji = uBoji;
         this.obostrano = obostrano;
         this.dioPrintanja = dioPrintanja;
+        System.out.print(this.dioPrintanja+"\n");
         this.vrstaUveza = vrstaUveza;
+        this.brojStranica = brojstranica;
+        System.out.print(this.brojStranica+"\n");
     }
 
 

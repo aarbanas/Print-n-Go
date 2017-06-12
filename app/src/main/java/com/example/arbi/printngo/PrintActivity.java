@@ -287,28 +287,68 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         startPage.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView textView, int i, KeyEvent keyEvent) {
-                if (i == EditorInfo.IME_ACTION_DONE){
-                    String trenutniText = (String) selectedPagesEnd.getText();
-                    selectedPagesStart.setText("\tPočetna: " + startPage.getText().toString());
-                    InputMethodManager imm = (InputMethodManager) textView.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-                    imm.hideSoftInputFromWindow(textView.getWindowToken(), 0);
-                    whatToPrint = "Početna: " + startPage.getText().toString() + " " + minus.getText().toString() + trenutniText;
-                    return true;
+
+                if (fileName != "") {
+                    if (i == EditorInfo.IME_ACTION_DONE && Integer.parseInt(startPage.getText().toString()) >= 1 && Integer.parseInt(startPage.getText().toString()) <= Integer.parseInt(brojStranica) && fileName != "") {
+
+
+                        String trenutniText = (String) selectedPagesEnd.getText();
+                        selectedPagesStart.setText("\tPočetna: " + startPage.getText().toString());
+                        InputMethodManager imm = (InputMethodManager) textView.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+                        imm.hideSoftInputFromWindow(textView.getWindowToken(), 0);
+                        whatToPrint = "Početna: " + startPage.getText().toString() + " " + minus.getText().toString() + trenutniText;
+
+                        TextView error_stranice = (TextView) findViewById(R.id.Error_stranica);
+                        error_stranice.setVisibility(View.GONE);
+
+                        return true;
+                    } else {
+                        TextView error_stranice = (TextView) findViewById(R.id.Error_stranica);
+                        error_stranice.setText("Postavljena početna stranica je neispravna.");
+                        error_stranice.setTextColor(Color.RED);
+                        error_stranice.setVisibility(View.VISIBLE);
+                        return false;
+                    }
+                } else {
+                    TextView error_stranice = (TextView) findViewById(R.id.Error_stranica);
+                    error_stranice.setText("Niste odabrali datoteku.");
+                    error_stranice.setTextColor(Color.RED);
+                    error_stranice.setVisibility(View.VISIBLE);
+
                 }
                 return false;
             }
+
         });
 
         endPage.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView textView, int i, KeyEvent keyEvent) {
-                if (i == EditorInfo.IME_ACTION_DONE){
-                    String trenutniText = (String) selectedPagesStart.getText();
-                    selectedPagesEnd.setText("Završna: " + endPage.getText().toString());
-                    InputMethodManager imm = (InputMethodManager) textView.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-                    imm.hideSoftInputFromWindow(textView.getWindowToken(), 0);
-                    whatToPrint = trenutniText + minus.getText().toString() + " " + "Završna: " + endPage.getText().toString();
-                    return true;
+                if (fileName != "") {
+                    if (i == EditorInfo.IME_ACTION_DONE && Integer.parseInt(endPage.getText().toString()) <= Integer.parseInt(brojStranica) && Integer.parseInt(endPage.getText().toString()) >= Integer.parseInt(startPage.getText().toString())) {
+                        String trenutniText = (String) selectedPagesStart.getText();
+                        selectedPagesEnd.setText("Završna: " + endPage.getText().toString());
+                        InputMethodManager imm = (InputMethodManager) textView.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+                        imm.hideSoftInputFromWindow(textView.getWindowToken(), 0);
+                        whatToPrint = trenutniText + minus.getText().toString() + " " + "Završna: " + endPage.getText().toString();
+
+                        TextView error_stranice = (TextView) findViewById(R.id.Error_stranica);
+                        error_stranice.setVisibility(View.GONE);
+
+                        return true;
+                    } else {
+                        TextView error_stranice = (TextView) findViewById(R.id.Error_stranica);
+                        error_stranice.setText("Postavljena završna stranica je neispravna.");
+                        error_stranice.setTextColor(Color.RED);
+                        error_stranice.setVisibility(View.VISIBLE);
+                        return false;
+                    }
+
+                } else {
+                    TextView error_stranice = (TextView) findViewById(R.id.Error_stranica);
+                    error_stranice.setText("Niste odabrali datoteku.");
+                    error_stranice.setTextColor(Color.RED);
+                    error_stranice.setVisibility(View.VISIBLE);
                 }
                 return false;
             }
@@ -820,8 +860,9 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                                 fileName,
                                 inColor,
                                 bothSides,
-                                whatToPrint,
-                                vrstaUveza);
+                                whatToPrint.split("-")[0].split(":")[1]+"-"+whatToPrint.split("-")[1].split(": ")[1],
+                                vrstaUveza,
+                                brojStranica);
                         mySendTask.setNetworkOperationFinished(new SendTask.NetworkOperationFinished() {
                             @Override
                             public void onNetworkOperationFinished(String response) {
