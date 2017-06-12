@@ -14,41 +14,17 @@
         android:layout_height="0dp"
         android:layout_weight="0.5"
         android:orientation="horizontal"
+        android:gravity="center"
         android:weightSum="1">
 
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="0.5"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:weightSum="1">
+        <Button
+            android:id="@+id/buttonPrint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="openList"
+            android:background="@drawable/unnamed"
+            android:text="Isprintaj" />
 
-            <Button
-                android:id="@+id/buttonPrint"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="0.5"
-                android:onClick="openList"
-                android:text="Isprintaj" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="0.5"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:weightSum="1">
-
-            <Button
-                android:id="@+id/buttonMap"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="0.5"
-                android:onClick="openMap"
-                android:text="Potraži na karti" />
-        </LinearLayout>
     </LinearLayout>
 
     <LinearLayout
@@ -61,37 +37,12 @@
         android:weightSum="1">
 
 
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="0.5"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:weightSum="1">
-
-            <Button
-                android:id="@+id/buttonQuerry"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="0.5"
-                android:text="Upit" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="0.5"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:weightSum="1">
-
-            <Button
-                android:id="@+id/buttonLike"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="0.5"
-                android:text="Like!" />
-        </LinearLayout>
+        <Button
+            android:id="@+id/buttonMap"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="openMap"
+            android:background="@drawable/button_maps" />
     </LinearLayout>
 
 

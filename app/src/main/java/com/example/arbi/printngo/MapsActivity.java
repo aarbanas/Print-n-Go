@@ -1,12 +1,15 @@
 package com.example.arbi.printngo;
 
 import android.Manifest;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.support.v4.app.ActivityCompat;
 import android.os.Bundle;
@@ -30,6 +33,21 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
 public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback,
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
@@ -42,7 +60,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     LocationRequest mLocationRequest;
     double latitudeFromPrint=0;
     double longitudeFromPrint=0;
+    double tmpLat;
+    double tmpLong;
     String adresaNaziv = "";
+    ProgressDialog pd;
+    public List<Marker> markerList = new ArrayList<Marker>();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -62,6 +85,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        //Execute async task for fetching list of copy shops
+
     }
 
     //Menu
@@ -163,6 +189,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
         mMap.animateCamera(CameraUpdateFactory.zoomTo(16));
 
+        new JsonTask().execute("http://207.154.235.97/login/lista_kopirnica.php");
         //stop location updates
         if (mGoogleApiClient != null) {
             LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
@@ -263,6 +290,130 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
         AlertDialog alert = builder.create();
         alert.show();
+    }
+
+    private class JsonTask extends AsyncTask<String, String, String> {
+        //On pre execute show progress dialog with message "Učitavanje"
+        protected void onPreExecute() {
+            super.onPreExecute();
+
+            pd = new ProgressDialog(MapsActivity.this);
+            pd.setMessage("Učitavanje...");
+            pd.setCancelable(false);
+            pd.show();
+        }
+        //Make connection to server and fetch server response in background
+        protected String doInBackground(String... params) {
+            HttpURLConnection connection = null;
+            BufferedReader reader = null;
+
+            try {
+                URL url = new URL(params[0]);
+                connection = (HttpURLConnection) url.openConnection();
+                connection.connect();
+
+
+                InputStream stream = connection.getInputStream();
+
+                reader = new BufferedReader(new InputStreamReader(stream));
+
+                StringBuffer buffer = new StringBuffer();
+                String line = "";
+
+                while ((line = reader.readLine()) != null) {
+                    buffer.append(line+"\n");
+
+                }
+
+                return buffer.toString();
+
+
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
+                try {
+                    if (reader != null) {
+                        reader.close();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            return null;
+        }
+
+        @Override
+        //On post execute decode JSON array and put all entries into List of strings
+        protected void onPostExecute(String result) {
+            String tempAdresa;
+            String data;
+            super.onPostExecute(result);
+            if (pd.isShowing()){
+                pd.dismiss();
+            }
+
+            if (result != null) {
+                // ...
+                JSONArray json = null;
+                try {
+                    json = new JSONArray(result);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+
+                for(int i=0;i<json.length();i++){
+                    JSONObject e = null;
+                    try {
+                        e = json.getJSONObject(i);
+
+                    } catch (JSONException e1) {
+                        e1.printStackTrace();
+                    }
+
+                    try {
+                        tempAdresa = e.getString("adresa");
+                        data = (e.getString("naziv") + ", " + "Cijena: " + e.getString("cijenaStandard") + " kn");
+                        getLatLong(tempAdresa);
+                        LatLng latLng = new LatLng(tmpLat, tmpLong);
+                        drawMarker(latLng, data);
+                    /*    mCurrLocationMarker = mMap.addMarker(new MarkerOptions().position(new LatLng(tmpLat, tmpLong))
+                                                                                .title(data)
+                                                                                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA)));
+                        markerList.add(mCurrLocationMarker);*/
+                    } catch (JSONException e1) {
+                        e1.printStackTrace();
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
+                    }
+
+                }
+           //     markerList.size();
+
+            }
+
+
+        }
+    }
+
+    public void getLatLong(String address) throws IOException {
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+        List<android.location.Address> lastLocationName =  geocoder.getFromLocationName(address, 1);
+        tmpLat = lastLocationName.get(0).getLatitude();
+        tmpLong = lastLocationName.get(0).getLongitude();
+    }
+
+    private void drawMarker (LatLng point, String data){
+        MarkerOptions markerOptions = new MarkerOptions();
+        markerOptions.position(point);
+        markerOptions.title(data);
+        markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
+        mMap.addMarker(markerOptions);
     }
 
 }
