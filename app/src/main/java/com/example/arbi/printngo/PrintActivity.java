@@ -95,7 +95,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import in.gauriinfotech.commons.Commons;
-import okhttp3.Address;
+
 
 import static android.view.View.INVISIBLE;
 
@@ -638,8 +638,8 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                 return true;
 
             case R.id.action_sendFile:
-                if (fileName == ""){
-                    showToastFromDialog("Can't send without selecting file");
+                if (fileName == "" || odabranaKopirnica == "Odaberite kopirnicu..."){
+                    showToastFromDialog("Can't send without selecting file or shop");
                 }
                 else send_file();
                 return true;

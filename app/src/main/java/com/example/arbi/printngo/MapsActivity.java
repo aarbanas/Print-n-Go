@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
@@ -32,6 +33,8 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -45,6 +48,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
@@ -64,7 +68,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     double tmpLong;
     String adresaNaziv = "";
     ProgressDialog pd;
-    public List<Marker> markerList = new ArrayList<Marker>();
+    Marker destination;
+    PolylineOptions lineIsLive = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -85,8 +90,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-
-        //Execute async task for fetching list of copy shops
 
     }
 
@@ -123,6 +126,56 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             buildGoogleApiClient();
             mMap.setMyLocationEnabled(true);
         }
+
+        mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+            @Override
+            public boolean onMarkerClick(Marker marker) {
+                destination = marker;
+                LatLng origin = mCurrLocationMarker.getPosition();
+                LatLng dest = destination.getPosition();
+                String url = getDirectionsUrl(origin, dest);
+
+             /*   if(lineIsLive != null){
+                    Polyline line = mMap.addPolyline(new PolylineOptions()
+                            .add(new LatLng(51.5, -0.1), new LatLng(40.7, -74.0))
+                            .width(5)
+                            .color(Color.RED));
+                    line.remove();
+                }*/
+
+                // Start downloading json data from Google Directions API:
+                DownloadTask downloadTask = new DownloadTask();
+                downloadTask.execute(url);
+                return false;
+            }
+        });
+    }
+
+    // Create Directions API URL from the origin and destination points:
+    private String getDirectionsUrl(LatLng origin, LatLng dest){
+
+        // Route origin:
+        String str_origin = "origin=" + origin.latitude + "," + origin.longitude;
+
+        // Route destination
+        String str_dest = "destination=" + dest.latitude + "," + dest.longitude;
+
+        // Mode of Transport => WALKING! (defaults to "driving"!)
+        String transportMode = "mode=walking";
+
+        // Sensor
+        String sensor = "sensor=false";
+
+        // Building the parameters to the web service
+        String parameters = str_origin + "&" + str_dest + "&" + transportMode + "&" + sensor;
+
+        // Output format
+        String output = "json";
+
+        // Building the url to the web service
+        String url = "https://maps.googleapis.com/maps/api/directions/" + output + "?" + parameters;
+
+        return url;
     }
 
     protected synchronized void buildGoogleApiClient() {
@@ -175,7 +228,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             markerOptions.position(latLng1);
             markerOptions.title(adresaNaziv);
             markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA));
-            mCurrLocationMarker = mMap.addMarker(markerOptions);
+            mMap.addMarker(markerOptions);
         }
         //Place current location marker
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
@@ -414,6 +467,165 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         markerOptions.title(data);
         markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
         mMap.addMarker(markerOptions);
+    }
+
+    // Fetches data from url passed
+    private class DownloadTask extends AsyncTask<String, Void, String> {
+
+        // Downloading data in non-UI thread
+        @Override
+        protected String doInBackground(String... url) {
+            String data = "";
+            try {
+                // Fetching the data from web service
+                data = downloadUrl(url[0]);
+            } catch(Exception e) {
+                //Log.d("Background Task",e.toString());
+            }
+            return data;
+        }
+
+        // Executes in UI thread, after the execution of doInBackground()
+        @Override
+        protected void onPostExecute(String result) {
+            super.onPostExecute(result);
+            ParserTask parserTask = new ParserTask();
+            // Invokes the thread for parsing the JSON data
+            parserTask.execute(result);
+        }
+    }
+
+
+    // Download json data (containing route) from API url:
+    private String downloadUrl(String strUrl) throws IOException {
+        String data = "";
+        InputStream iStream = null;
+        HttpURLConnection urlConnection = null;
+
+        try {
+            URL url = new URL(strUrl);
+
+            // Creating an http connection to communicate with url
+            urlConnection = (HttpURLConnection) url.openConnection();
+
+            // Connecting to url
+            urlConnection.connect();
+
+            // Reading data from url
+            iStream = urlConnection.getInputStream();
+
+            BufferedReader br = new BufferedReader(new InputStreamReader(iStream));
+            StringBuffer sb = new StringBuffer();
+            String line = "";
+            while( ( line = br.readLine()) != null){
+                sb.append(line);
+            }
+
+            data = sb.toString();
+            br.close();
+
+        } catch(Exception e) {
+            //Log.d("Exception while downloading url", e.toString());
+        } finally {
+            iStream.close();
+            urlConnection.disconnect();
+        }
+        return data;
+    }
+
+
+    // Class containing List with drawing info, and walking data (distance and estimated duration)
+    private class jsonParsedData
+    {
+        List<List<HashMap<String,String>>> routeToDraw;
+        String[] walkingData;
+
+        public jsonParsedData(List<List<HashMap<String,String>>> routeToDraw, String[] walkingData)
+        {
+            this.routeToDraw = routeToDraw;
+            this.walkingData = walkingData;
+        }
+
+        public List<List<HashMap<String,String>>> get_routeToDraw(){
+            return this.routeToDraw;
+        }
+
+        public String[] get_walkingData(){
+            return this.walkingData;
+        }
+    }
+
+
+    // A class to parse the Google Places in JSON format:
+    private class ParserTask extends AsyncTask<String, Integer, jsonParsedData>
+    {
+        // Parsing the data in non-UI thread:
+        @Override
+        protected jsonParsedData doInBackground(String... jsonData) {
+
+            JSONObject jObject;
+            List<List<HashMap<String, String>>> routes = null;
+            String[] walkData = new String[2];
+            jsonParsedData allData = null;
+
+            try {
+                jObject = new JSONObject(jsonData[0]);
+                DirectionsJSONParser parser = new DirectionsJSONParser();
+
+                // Starts parsing data
+                routes = parser.parse(jObject);
+                walkData = parser.decodeWalkingDurationAndWalkingDistance(jObject);
+                allData = new jsonParsedData(routes, walkData);
+            } catch(Exception e) {
+                // e.printStackTrace();
+            }
+            return allData;
+        }
+
+        // Executes in UI thread, after the parsing process in doInBackground method:
+        @Override
+        protected void onPostExecute(jsonParsedData completeResult) {
+            ArrayList<LatLng> points = null;
+            PolylineOptions lineOptions = null;
+            MarkerOptions markerOptions = new MarkerOptions();
+
+            List<List<HashMap<String, String>>> result = completeResult.get_routeToDraw();
+            String[] infoWalking = completeResult.get_walkingData();
+
+            // Traversing through all the routes
+            for(int i=0; i < result.size(); i++)
+            {
+                points = new ArrayList<LatLng>();
+                lineOptions = new PolylineOptions();
+
+                // Fetching i-th route
+                List<HashMap<String, String>> path = result.get(i);
+
+                // Fetching all the points in i-th route
+                for(int j=0; j < path.size(); j++)
+                {
+                    HashMap<String,String> point = path.get(j);
+                    double lat = Double.parseDouble(point.get("lat"));
+                    double lng = Double.parseDouble(point.get("lng"));
+                    LatLng position = new LatLng(lat, lng);
+                    points.add(position);
+                }
+
+                // Adding all the points in the route to LineOptions
+                lineOptions.addAll(points);
+                lineOptions.width(5);
+                lineOptions.color(Color.RED);
+            }
+
+            // Drawing polyline in the Google Map for the i-th route
+            lineIsLive = lineOptions;
+            mMap.addPolyline(lineOptions);
+
+            // Show walking info on the marker:
+            destination.setSnippet("Distance: " + infoWalking[0] + "\n" +
+                    "Duration: " + infoWalking[1]);
+            destination.showInfoWindow();
+        }
     }
 
 }
