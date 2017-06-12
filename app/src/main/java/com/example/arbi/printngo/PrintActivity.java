@@ -111,6 +111,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
     private String[] labels_postavke = {"label_postavke","label_interval_ispisa","label_postavke_uveza"};
     private String[] layout_postavke = {"layout_postavke","layout_interval_ispisa","layout_postavke_uveza"};
     public List<String> spinner_array = new ArrayList<String>();
+    public List<String> cijena_array = new ArrayList<String>();
     private int cursor_postavke=0;
     ProgressDialog pd;
     AlertDialog sendDialog;
@@ -127,6 +128,8 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
     Bitmap fullscreenpicture;
     String copyShopAdress = "";
     String tmpText;
+
+    String[] cijena_kopirnica;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -361,6 +364,20 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                 if(selectedItemText != "Odaberite kopirnicu..."){
 
                     odabranaKopirnica = selectedItemText.split("                              #")[1];
+
+
+                    int c;
+
+                    for(c=0;c<=cijena_array.size();c++){
+                        Log.i(TAG,cijena_array.get(c).split(",")[0]+" ?= "+odabranaKopirnica);
+                        if(cijena_array.get(c).split(",")[0].equals(odabranaKopirnica)){
+                            cijena_kopirnica = cijena_array.get(c).split(",");
+                            break;
+
+                        }
+
+                    }
+                    Log.i(TAG,cijena_kopirnica[3]);
                     tmpText = selectedItemText.split("                              #")[0].substring(selectedItemText.indexOf(", ") + 1);
                     tmpText = tmpText.split("                              #")[0];
                     selectedShop.setText("\t" + selectedItemText.split("                              #")[0]);
@@ -560,6 +577,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
 
                     try {
                         spinner_array.add(e.getString("naziv")+", "+ e.getString("adresa")+"                              #"+e.getString("idKopirnice"));
+                        cijena_array.add(e.getString("idKopirnice")+","+e.getString("cijenaStandard")+","+e.getString("cijenaBoja")+","+e.getString("cijenaUvez_M")+","+e.getString("cijenaUvez_T"));
                     } catch (JSONException e1) {
                         e1.printStackTrace();
                     }
@@ -575,6 +593,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             }
 
             odabranaKopirnica = "Odaberite kopirnicu...";
+            Log.i(TAG,cijena_array.get(0));
         }
     }
 
