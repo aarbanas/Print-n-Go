@@ -70,7 +70,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:ems="10"
-            android:hint="Broj kopija"
+            android:hint="Broj kopija (1)"
             android:inputType="number"
             android:imeOptions="actionDone"/>
 
