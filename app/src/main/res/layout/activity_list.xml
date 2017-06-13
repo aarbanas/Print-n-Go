@@ -373,6 +373,7 @@
                 android:id="@+id/textViewShowData"
                 android:layout_width="match_parent"
                 android:gravity="center"
+                android:textSize="25dp"
                 android:layout_height="0dp"
                 android:layout_weight="0.45" />
         </LinearLayout>

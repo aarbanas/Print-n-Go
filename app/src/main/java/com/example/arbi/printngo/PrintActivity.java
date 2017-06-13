@@ -1,36 +1,19 @@
 package com.example.arbi.printngo;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.RandomAccessFile;
-import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Random;
 
 import android.animation.LayoutTransition;
-import android.animation.ObjectAnimator;
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
@@ -40,30 +23,22 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
-import android.graphics.pdf.PdfRenderer;
 import android.location.Geocoder;
-import android.media.Image;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
-import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.support.annotation.IdRes;
 import android.support.annotation.NonNull;
-import android.support.annotation.StringDef;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -129,13 +104,23 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
     String copyShopAdress = "";
     String tmpText;
 
+    EditText startPage;
+    EditText endPage;
+
     String[] cijena_kopirnica;
+    float cijena_uvez;
+    float cijena_boja;
+    float cijena_dio_printanja;
+
+    TextView aboutPrinting;
+
+    float ukupna_cijena;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list);
-        final TextView aboutPrinting = (TextView) findViewById(R.id.textViewShowData);
+        aboutPrinting = (TextView) findViewById(R.id.textViewShowData);
         final TextView pageCount = (TextView) findViewById(R.id.textViewBrojKopija);
         final TextView selectedPagesStart = (TextView) findViewById(R.id.textViewSelectedPagesStart);
         final TextView selectedPagesEnd = (TextView) findViewById(R.id.textViewSelectedPagesEnd);
@@ -145,8 +130,8 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         final CheckBox uBoji = (CheckBox) findViewById(R.id.checkBoxInColor);
         final ImageView imageThumbnail = (ImageView) findViewById(R.id.imageViewShowPDF);
         final EditText brojKopija = (EditText) findViewById(R.id.editTextPaperCount);
-        final EditText startPage = (EditText) findViewById(R.id.editTextStart);
-        final EditText endPage = (EditText) findViewById(R.id.editTextEnd);
+        startPage = (EditText) findViewById(R.id.editTextStart);
+        endPage = (EditText) findViewById(R.id.editTextEnd);
         final RadioGroup uvez = (RadioGroup) findViewById(R.id.radioGroupUvez);
         final RadioGroup ispis = (RadioGroup) findViewById(R.id.radioGroupIntervalIspisa);
         final RadioButton bezUveza = (RadioButton) findViewById(R.id.radioButtonBezUveza);
@@ -163,6 +148,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         //Set click listeners on buttons "Dalje" and "Natrag"
         findViewById(R.id.previous_postavke).setOnClickListener(this);
         findViewById(R.id.next_postavke).setOnClickListener(this);
+        inColor = "crno-bijelo";
 
         //Execute async task for fetching list of copy shops
         new JsonTask().execute("http://207.154.235.97/login/lista_kopirnica.php");
@@ -190,13 +176,17 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             public void onClick(View view) {
                 String trenutniText = (String) aboutPrinting.getText();
                 if (uBoji.isChecked()) {
-                    aboutPrinting.setText(trenutniText + "\n\tU boji");
+                    //aboutPrinting.setText(trenutniText + "\n\tU boji");
                     inColor = "u boji";
+                    izracunajCijenu();
+                    aboutPrinting.setText("Cijena: "+Float.toString(ukupna_cijena)+" kn");
                 }
                 else {
                     trenutniText = trenutniText.replaceAll("\\n\\tU boji", "");
-                    aboutPrinting.setText(trenutniText);
+                   // aboutPrinting.setText(trenutniText);
                     inColor = "crno-bijelo";
+                    izracunajCijenu();
+                    aboutPrinting.setText("Cijena: "+Float.toString(ukupna_cijena)+" kn");
                 }
             }
         });
@@ -206,12 +196,12 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             public void onClick(View view) {
                 String trenutniText = (String) aboutPrinting.getText();
                 if (obostrano.isChecked()) {
-                    aboutPrinting.setText(trenutniText + "\n\tObostrano");
+                    //aboutPrinting.setText(trenutniText + "\n\tObostrano");
                     bothSides = "obostrano";
                 }
                 else {
                     trenutniText = trenutniText.replaceAll("\\n\\tObostrano", "");
-                    aboutPrinting.setText(trenutniText);
+                    //aboutPrinting.setText(trenutniText);
                     bothSides = "jednostrano";
                 }
             }
@@ -227,6 +217,8 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                     InputMethodManager imm = (InputMethodManager) textView.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
                     imm.hideSoftInputFromWindow(textView.getWindowToken(), 0);
                     kopije = Long.parseLong(brojKopija.getText().toString());
+                    izracunajCijenu();
+                    aboutPrinting.setText("Cijena: "+Float.toString(ukupna_cijena)+" kn");
                     return true;
                 }
                 return false;
@@ -234,7 +226,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         });
 
         uvez.check(bezUveza.getId());
-        aboutPrinting.setText("\n\tBez uveza");
+        //aboutPrinting.setText("\n\tBez uveza");
         vrstaUveza = "bez uveza";
         uvez.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
@@ -243,20 +235,33 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                 if (bezUveza.isChecked()){
                     trenutniText = trenutniText.replaceAll("\\n\\tMeki uvez", "");
                     trenutniText = trenutniText.replaceAll("\\n\\tTvrdi uvez", "");
-                    aboutPrinting.setText(trenutniText + "\n\tBez uveza");
+                    //aboutPrinting.setText(trenutniText + "\n\tBez uveza");
                     vrstaUveza = "bez uveza";
+                    izracunajCijenu();
+                    aboutPrinting.setText("Cijena: "+Float.toString(ukupna_cijena)+" kn");
+                    Log.i(TAG,"Cijena: "+Float.toString(ukupna_cijena));
+
+
+
                 }
                 else if (mekiUvez.isChecked()){
                     trenutniText = trenutniText.replaceAll("\\n\\tBez uveza", "");
                     trenutniText = trenutniText.replaceAll("\\n\\tTvrdi uvez", "");
-                    aboutPrinting.setText(trenutniText + "\n\tMeki uvez");
+                    //aboutPrinting.setText(trenutniText + "\n\tMeki uvez");
                     vrstaUveza = "meki uvez";
+                    izracunajCijenu();
+                    aboutPrinting.setText("Cijena: "+Float.toString(ukupna_cijena)+" kn");
+                    //Log.i(TAG,"Cijena: "+Float.toString(ukupna_cijena));
+
                 }
                 else {
                     trenutniText = trenutniText.replaceAll("\\n\\tBez uveza", "");
                     trenutniText = trenutniText.replaceAll("\\n\\tMeki uvez", "");
-                    aboutPrinting.setText(trenutniText + "\n\tTvrdi uvez");
+                    //aboutPrinting.setText(trenutniText + "\n\tTvrdi uvez");
                     vrstaUveza = "tvrdi uvez";
+                    izracunajCijenu();
+                    aboutPrinting.setText("Cijena: "+Float.toString(ukupna_cijena)+" kn");
+                    Log.i(TAG,"Cijena: "+Float.toString(ukupna_cijena));
                 }
             }
         });
@@ -278,6 +283,8 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                     endPage.setVisibility(INVISIBLE);
                     selectedPagesEnd.setText("");
                     whatToPrint = "isprintaj sve";
+                    izracunajCijenu();
+                    aboutPrinting.setText("Cijena: "+Float.toString(ukupna_cijena)+" kn");
                 }
                 else {
                     minus.setVisibility(View.VISIBLE);
@@ -302,7 +309,8 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                         InputMethodManager imm = (InputMethodManager) textView.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
                         imm.hideSoftInputFromWindow(textView.getWindowToken(), 0);
                         whatToPrint = "Početna: " + startPage.getText().toString() + " " + minus.getText().toString() + trenutniText;
-
+                        izracunajCijenu();
+                        aboutPrinting.setText("Cijena: "+Float.toString(ukupna_cijena)+" kn");
                         TextView error_stranice = (TextView) findViewById(R.id.Error_stranica);
                         error_stranice.setVisibility(View.GONE);
 
@@ -336,6 +344,8 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                         InputMethodManager imm = (InputMethodManager) textView.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
                         imm.hideSoftInputFromWindow(textView.getWindowToken(), 0);
                         whatToPrint = trenutniText + minus.getText().toString() + " " + "Završna: " + endPage.getText().toString();
+                        izracunajCijenu();
+                        aboutPrinting.setText("Cijena: "+Float.toString(ukupna_cijena)+" kn");
 
                         TextView error_stranice = (TextView) findViewById(R.id.Error_stranica);
                         error_stranice.setVisibility(View.GONE);
@@ -379,6 +389,9 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                         }
 
                     }
+
+
+
                     Log.i(TAG,cijena_kopirnica[3]);
                     tmpText = selectedItemText.split("                              #")[0].substring(selectedItemText.indexOf(", ") + 1);
                     tmpText = tmpText.split("                              #")[0];
@@ -386,6 +399,9 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
 
                     copyShopAdress = tmpText;
                     tmpText=selectedItemText.split("                              #")[0];
+
+                    izracunajCijenu();
+                    aboutPrinting.setText("Cijena: "+Float.toString(ukupna_cijena)+" kn");
                 }
                 else {
                     odabranaKopirnica = "Odaberite kopirnicu...";
@@ -459,6 +475,9 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                     editTextFile.setText(displayName, TextView.BufferType.EDITABLE);
                    // Log.i(TAG, uri.getPath());
                     fileName = displayName;
+
+                    izracunajCijenu();
+                    aboutPrinting.setText("Cijena: "+Float.toString(ukupna_cijena)+" kn");
                 }
             }
         }
@@ -803,6 +822,9 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
     }
 
     public void send_file(){
+
+        izracunajCijenu();
+
         if (inColor == null ){
             inColor = "crno-bijelo";
         }
@@ -810,9 +832,9 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
             bothSides = "jednostrano";
         }
         dialog_for_sending("http://207.154.235.97/files/sendfile-baza.php",
-                 "\n\nŽelite li isprintati " + fileName + " u kopirnici: " + odabranaKopirnica + ", s brojem kopija: "
-                         + kopije + " brojem stranica: " + brojStranica + " te odabranim dijelom: "
-                        + whatToPrint + ", sa sljedećim postavkama: " + inColor + ", " + bothSides + ", " + vrstaUveza,
+                 "\n\nDatoteka: " + fileName + "\nKopirnica: " + tmpText.split(",")[0] + "\nBroj kopija: "
+                         + kopije + "\nBroj stranica: " + brojStranica + "\nDio za ispis: "
+                        + whatToPrint + "\nPostavke za ispis: " + inColor + ", " + bothSides + ", " + vrstaUveza+"\n\nCijena: "+ukupna_cijena+"kn",
                 "Pošaljite datoteku za printanje",
                 "Datoteka je uspješno poslana.",
                 "Greška u slanju preko veze.");
@@ -821,6 +843,58 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
 
     private void showToastFromDialog(String message){
         Toast.makeText(this, message , Toast.LENGTH_SHORT).show();
+    }
+
+    private void izracunajCijenu(){
+
+        try{
+
+        if(odabranaKopirnica!="Odaberite kopirnicu..."){
+            Log.i(TAG,startPage.getText().toString());
+            Log.i(TAG,endPage.getText().toString());
+            if(inColor.equals("u boji")){
+                cijena_boja = Float.parseFloat(cijena_kopirnica[2]);
+            }else {
+                cijena_boja = Float.parseFloat(cijena_kopirnica[1]);
+                Log.i(TAG, Float.toString(cijena_boja));
+            }
+
+        if(vrstaUveza!=null) {
+            if (vrstaUveza.equals("bez uveza")) {
+                cijena_uvez = 0;
+            } else if (vrstaUveza.equals("meki uvez")) {
+                cijena_uvez = Float.parseFloat(cijena_kopirnica[3]);
+            } else if (vrstaUveza.equals("tvrdi uvez")) {
+                cijena_uvez = Float.parseFloat(cijena_kopirnica[4]);
+            }
+        }
+
+
+                if (whatToPrint.equals("isprintaj sve")) {
+
+                    cijena_dio_printanja = Float.parseFloat(brojStranica);
+                }else if (startPage.getText().toString()!="" && endPage.getText().toString()!="") {
+
+                    if(Float.parseFloat(startPage.getText().toString())== Float.parseFloat(endPage.getText().toString())){
+
+                        cijena_dio_printanja = 1;
+                    }else if (Float.parseFloat(startPage.getText().toString()) < Float.parseFloat(endPage.getText().toString())) {
+                        cijena_dio_printanja = Float.parseFloat(endPage.getText().toString()) - Float.parseFloat(startPage.getText().toString()) + 1;
+                    }
+
+                }
+
+                ukupna_cijena = cijena_boja * kopije * cijena_dio_printanja + cijena_uvez;
+
+                //Log.i(TAG, Float.toString(kopije));
+
+
+        }
+
+        }catch(Exception ex){ // handle your exception
+ ex.printStackTrace();
+        }
+
     }
 
     private void dialog_for_sending(final String urladdress,
@@ -849,6 +923,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                 return;
             }
         });
+
 
         sendDialog = alertDlg.create();
         sendDialog.setMessage(dlgMessage);
@@ -901,12 +976,12 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
                                 }
                             }
                         });
+
                         mySendTask.execute();
                     }
                 });
             }
         });
-
         sendDialog.show();
     }
 
