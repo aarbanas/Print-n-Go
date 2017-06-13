@@ -208,7 +208,7 @@ public class PrintActivity extends AppCompatActivity implements GoogleApiClient.
         });
 
 
-        pageCount.setText("\tBroj kopija: " + brojKopija.getText().toString());
+        pageCount.setText("\tBroj kopija: " + kopije);
         brojKopija.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView textView, int i, KeyEvent keyEvent) {

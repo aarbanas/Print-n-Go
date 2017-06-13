@@ -445,7 +445,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         //On post execute decode JSON array and put all entries into List of strings
         protected void onPostExecute(String result) {
             String tempAdresa;
-            String data;
+            String naziv;
+            String cijenaStandard;
+            String cijenaBoja;
+            String cijenaUvez_M;
+            String cijenaUvez_T;
             super.onPostExecute(result);
             if (pd.isShowing()){
                 pd.dismiss();
@@ -472,10 +476,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                     try {
                         tempAdresa = e.getString("adresa");
-                        data = (e.getString("naziv") + ", " + "Cijena: " + e.getString("cijenaStandard") + " kn");
+                        naziv = (e.getString("naziv"));
+                        cijenaStandard = ("Cijena standard: " + e.getString("cijenaStandard") + " kn");
+                        cijenaBoja = ("Cijena Boja: " + e.getString("cijenaBoja") + " kn");
+                        cijenaUvez_M = ("Cijena meki uvez: " + e.getString("cijenaUvez_M") + " kn");
+                        cijenaUvez_T = ("Cijena tvrdi uvez: " + e.getString("cijenaUvez_T" + " kn"));
                         getLatLong(tempAdresa);
                         LatLng latLng = new LatLng(tmpLat, tmpLong);
-                        drawMarker(latLng, data);
+                        drawMarker(latLng, naziv, cijenaStandard, cijenaBoja, cijenaUvez_M, cijenaUvez_T);
                     /*    mCurrLocationMarker = mMap.addMarker(new MarkerOptions().position(new LatLng(tmpLat, tmpLong))
                                                                                 .title(data)
                                                                                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA)));
@@ -502,11 +510,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         tmpLong = lastLocationName.get(0).getLongitude();
     }
 
-    private void drawMarker (LatLng point, String data){
+    private void drawMarker (LatLng point, String naziv, String cijenaS, String cijenaB, String cijenaMU, String cijenaTU){
         MarkerOptions markerOptions = new MarkerOptions();
         markerOptions.position(point);
-        markerOptions.title(data);
+        markerOptions.title(naziv);
         markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
+        markerOptions.snippet(cijenaS + "\n" + cijenaB + "\n" + cijenaMU + cijenaTU);
         mMap.addMarker(markerOptions);
     }
 
